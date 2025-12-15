@@ -1,6 +1,6 @@
 use crate::pipeline::{InstancedComputePipeline, InstancedMaterialPipeline};
 use crate::prelude::*;
-use crate::resources::{CameraCullData, GlobalCullBuffer, GrassBufferCache, LodCullData};
+use crate::resources::{CameraCullData, GlobalCullBuffer, LodCullData};
 use bevy_camera::Camera;
 use bevy_ecs::prelude::*;
 use bevy_math::Vec4;
@@ -207,20 +207,27 @@ pub(super) fn prepare_global_cull_buffer(
 
 pub(super) fn prepare_instanced_compute_resources(
     mut commands: Commands,
-    query: Query<(Entity, &MainEntity, &InstanceMaterialData), With<GpuCull>>,
+    query: Query<
+        (
+            Entity,
+            &MainEntity,
+            &InstanceMaterialData,
+            Option<&InstancedComputeSourceBuffer>,
+        ),
+        With<GpuCull>,
+    >,
     render_device: Res<RenderDevice>,
     render_mesh_instances: Res<RenderMeshInstances>,
     meshes: Res<RenderAssets<RenderMesh>>,
     mesh_allocator: Res<MeshAllocator>,
     pipeline: Res<InstancedComputePipeline>,
     global_cull_buffer: Option<Res<GlobalCullBuffer>>,
-    mut buffer_cache: ResMut<GrassBufferCache>,
 ) {
     let Some(cull_buffer) = global_cull_buffer else {
         return;
     };
 
-    for (entity, main_entity, instance_data) in &query {
+    for (entity, main_entity, instance_data, source_buffer) in &query {
         let count = instance_data.instances.len();
         if count == 0 {
             continue;
@@ -275,16 +282,16 @@ pub(super) fn prepare_instanced_compute_resources(
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
-        let source_buffer = if let Some(buffer) = buffer_cache.buffers.get(&**main_entity) {
-            buffer.clone()
+        let source_buffer = if let Some(existing) = source_buffer
+            && existing.count == count as u32
+        {
+            existing.buffer.clone()
         } else {
-            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            render_device.create_buffer_with_data(&BufferInitDescriptor {
                 label: Some("instanced_material_compute_source_buffer"),
                 contents: bytemuck::cast_slice(&instance_data.instances),
                 usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
-            });
-            buffer_cache.buffers.insert(**main_entity, buffer.clone());
-            buffer
+            })
         };
 
         let output_size = (count * size_of::<InstanceData>()) as u64;

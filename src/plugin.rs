@@ -8,7 +8,6 @@ use super::{
 };
 use crate::prelude::*;
 
-use crate::resources::GrassBufferCache;
 use bevy_app::{App, Plugin, PostUpdate};
 use bevy_asset::{AssetApp, embedded_asset};
 use bevy_core_pipeline::core_3d::AlphaMask3d;
@@ -48,7 +47,6 @@ impl Plugin for InstancedMaterialPlugin {
 
         render_app
             .add_render_command::<AlphaMask3d, DrawInstancedMaterial>()
-            .init_resource::<GrassBufferCache>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline>>()
             .add_systems(
                 Render,
