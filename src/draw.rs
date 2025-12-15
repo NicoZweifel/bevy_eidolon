@@ -15,7 +15,7 @@ pub type DrawInstancedMaterial = (
     SetMeshViewBindingArrayBindGroup<1>,
     SetMeshBindGroup<2>,
     SetInstancedMaterialBindGroup<3>,
-    SetInstancedMaterialPatchBindGroup<4>,
+    SetInstancedMaterialInstanceUniformsBindGroup<4>,
     DrawInstancedMaterialMesh,
 );
 
@@ -50,8 +50,8 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialBind
     }
 }
 
-pub struct SetInstancedMaterialPatchBindGroup<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialPatchBindGroup<I> {
+pub struct SetInstancedMaterialInstanceUniformsBindGroup<const I: usize>;
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialInstanceUniformsBindGroup<I> {
     type Param = ();
 
     type ViewQuery = ();
