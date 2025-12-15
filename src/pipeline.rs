@@ -193,7 +193,7 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Instance_buffer
+                // InstanceBuffer
                 BindGroupLayoutEntry {
                     binding: 1,
                     visibility: ShaderStages::COMPUTE,
@@ -204,7 +204,7 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Indirect_args
+                // IndirectArgs
                 BindGroupLayoutEntry {
                     binding: 2,
                     visibility: ShaderStages::COMPUTE,
@@ -216,7 +216,7 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Camera_cull_buffer
+                // CameraCullBuffer
                 BindGroupLayoutEntry {
                     binding: 3,
                     visibility: ShaderStages::COMPUTE,
@@ -227,7 +227,7 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Lod_cull_buffer
+                // LodCullBuffer
                 BindGroupLayoutEntry {
                     binding: 4,
                     visibility: ShaderStages::COMPUTE,
