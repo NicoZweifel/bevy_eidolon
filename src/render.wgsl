@@ -12,13 +12,13 @@ struct MaterialUniform {
     debug_color: vec4<f32>
 };
 
-struct InstanceUniform {
+struct InstanceUniforms {
     color: vec4<f32>,
     visibility_range: vec4<f32>,
 };
 
 @group(3) @binding(0) var<uniform> material: MaterialUniform;
-@group(3) @binding(1) var<uniform> instance_uniform: InstanceUniform;
+@group(3) @binding(1) var<uniform> instance_uniforms: InstanceUniforms;
 
 struct Vertex {
     @location(0) position: vec3<f32>,

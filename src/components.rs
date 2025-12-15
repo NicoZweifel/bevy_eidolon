@@ -97,14 +97,14 @@ pub struct InstanceLodBuffer {
 
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 #[repr(C)]
-pub struct InstanceUniform {
+pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
 }
 
-impl From<&InstanceMaterialData> for InstanceUniform {
+impl From<&InstanceMaterialData> for InstanceUniforms {
     fn from(value: &InstanceMaterialData) -> Self {
-        InstanceUniform {
+        InstanceUniforms {
             color: value.color,
             visibility_range: value.visibility_range,
             ..default()

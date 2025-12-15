@@ -27,11 +27,11 @@ pub struct InstancedMaterial {
 
 #[repr(C)]
 #[derive(ShaderType, Clone, Zeroable, Copy, Pod)]
-pub struct MaterialUniform {
+pub struct MaterialUniforms {
     pub debug_color: Vec4,
 }
 
-impl MaterialUniform {
+impl MaterialUniforms {
     pub fn new(debug_color: Vec4) -> Self {
         Self { debug_color }
     }
@@ -64,7 +64,7 @@ impl RenderAsset for PreparedInstancedMaterial {
         render_device: &mut SystemParamItem<Self::Param>,
         _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        let uniform_data = MaterialUniform {
+        let uniform_data = MaterialUniforms {
             debug_color: source_asset.debug_color.to_linear().to_vec4(),
         };
 
@@ -78,8 +78,8 @@ impl RenderAsset for PreparedInstancedMaterial {
     }
 }
 
-impl<'a> From<&'a InstancedMaterial> for MaterialUniform {
+impl<'a> From<&'a InstancedMaterial> for MaterialUniforms {
     fn from(material: &'a InstancedMaterial) -> Self {
-        MaterialUniform::new(material.debug_color.to_linear().to_vec4())
+        MaterialUniforms::new(material.debug_color.to_linear().to_vec4())
     }
 }

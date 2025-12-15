@@ -89,22 +89,24 @@ pub(super) fn prepare_instanced_bind_group(
             continue;
         };
 
-        let uniforms: InstanceUniform = instance_data.into();
+        let uniforms: InstanceUniforms = instance_data.into();
         let contents = bytes_of(&uniforms);
 
         let buffer = if let Some(instance_uniform_buffer) = uniform_buffer {
             render_queue.write_buffer(&instance_uniform_buffer.buffer, 0, contents);
             instance_uniform_buffer.buffer.clone()
         } else {
-            let b = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
                 label: Some("instanced_material_uniform_buffer"),
                 contents,
                 usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             });
-            commands
-                .entity(entity)
-                .insert(InstanceUniformBuffer { buffer: b.clone() });
-            b
+
+            commands.entity(entity).insert(InstanceUniformBuffer {
+                buffer: buffer.clone(),
+            });
+
+            buffer
         };
 
         let bind_group = render_device.create_bind_group(
