@@ -27,7 +27,6 @@ fn main() -> AppExit {
 
 fn setup(
     mut cmd: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut instanced_materials: ResMut<Assets<InstancedMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
@@ -37,14 +36,6 @@ fn setup(
         center: Vec3A::new(0.25, 0.375, 0.0),
         half_extents: Vec3A::new(0.25, 1.125, 0.0),
     };
-
-    cmd.spawn((
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: GRAY_500.into(),
-            ..default()
-        })),
-        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(80.).build())),
-    ));
 
     let material_handle = instanced_materials.add(InstancedMaterial {
         debug: false,

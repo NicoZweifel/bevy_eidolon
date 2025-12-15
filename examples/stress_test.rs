@@ -29,7 +29,6 @@ fn main() -> AppExit {
 
 fn setup(
     mut cmd: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut instanced_materials: ResMut<Assets<InstancedMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
@@ -49,20 +48,11 @@ fn setup(
         half_extents: Vec3A::new(0.1, 0.375, 0.0),
     };
 
-    cmd.spawn((
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: GRAY_500.into(),
-            ..default()
-        })),
-        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(150.0).build())),
-    ));
-
     let material_handle = instanced_materials.add(InstancedMaterial {
-        debug: false,
         // Signal to the material that it is in the GPU-driven pipeline (not used currently)
         gpu_cull: true,
-        debug_color: Default::default(),
         polygon_mode: PolygonMode::Line,
+        ..default()
     });
 
     const SIDE_LENGTH: i32 = 1400;

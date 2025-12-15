@@ -60,7 +60,7 @@ pub(crate) fn add_instance_key_component(
         );
         key.set(InstancedMaterialKey::DEBUG, material.debug);
         key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull);
-         key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided);
+        key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided);
 
         commands
             .entity(entity)

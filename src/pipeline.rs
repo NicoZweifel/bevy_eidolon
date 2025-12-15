@@ -153,8 +153,11 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
             descriptor.primitive.polygon_mode = PolygonMode::Line;
         }
 
-        if key.material_key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
-           descriptor.primitive.cull_mode = None;
+        if key
+            .material_key
+            .contains(InstancedMaterialKey::DOUBLE_SIDED)
+        {
+            descriptor.primitive.cull_mode = None;
         }
 
         Ok(descriptor)
