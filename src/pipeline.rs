@@ -1,5 +1,5 @@
 use super::components::InstanceData;
-use crate::prelude::{InstanceUniforms, MaterialUniform};
+use crate::prelude::{InstanceUniform, MaterialUniform};
 use crate::resources::{CameraCullData, LodCullData};
 use crate::systems::InstancedMaterialKey;
 
@@ -53,7 +53,7 @@ impl FromWorld for InstancedMaterialPipeline {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: BufferSize::new(size_of::<InstanceUniforms>() as u64),
+                        min_binding_size: BufferSize::new(size_of::<InstanceUniform>() as u64),
                     },
                     count: None,
                 },

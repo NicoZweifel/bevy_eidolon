@@ -12,13 +12,13 @@ struct MaterialUniform {
     debug_color: vec4<f32>
 };
 
-struct InstanceUniforms {
+struct InstanceUniform {
     color: vec4<f32>,
     visibility_range: vec4<f32>,
 };
 
 @group(3) @binding(0) var<uniform> material: MaterialUniform;
-@group(3) @binding(1) var<uniform> instance_uniforms: InstanceUniforms;
+@group(3) @binding(1) var<uniform> instance_uniform: InstanceUniform;
 
 struct Vertex {
     @location(0) position: vec3<f32>,
@@ -109,7 +109,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = get_visibility_range_dither_level(
-        instance_uniforms.visibility_range,
+        instance_uniform.visibility_range,
         vec4<f32>(translation, 1.0)
     );
 #endif
@@ -149,5 +149,5 @@ fn fragment(
     bevy_pbr::pbr_functions::visibility_range_dither(in.clip_position, in.visibility_range_dither);
 #endif
 
-    return instance_uniforms.color;
+    return instance_uniform.color;
 }

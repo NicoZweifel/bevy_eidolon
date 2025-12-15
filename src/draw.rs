@@ -33,10 +33,12 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedCombinedBind
         _param: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(bg) = item else {
+        let Some(combined_bind_group) = item else {
             return RenderCommandResult::Skip;
         };
-        pass.set_bind_group(I, &bg.0, &[]);
+
+        pass.set_bind_group(I, &combined_bind_group.0, &[]);
+
         RenderCommandResult::Success
     }
 }

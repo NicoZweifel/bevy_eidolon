@@ -89,12 +89,12 @@ pub(super) fn prepare_instanced_bind_group(
             continue;
         };
 
-        let uniforms: InstanceUniforms = instance_data.into();
+        let uniforms: InstanceUniform = instance_data.into();
         let contents = bytes_of(&uniforms);
 
-        let buffer = if let Some(ub) = uniform_buffer {
-            render_queue.write_buffer(&ub.buffer, 0, contents);
-            ub.buffer.clone()
+        let buffer = if let Some(instance_uniform_buffer) = uniform_buffer {
+            render_queue.write_buffer(&instance_uniform_buffer.buffer, 0, contents);
+            instance_uniform_buffer.buffer.clone()
         } else {
             let b = render_device.create_buffer_with_data(&BufferInitDescriptor {
                 label: Some("instanced_material_uniform_buffer"),
