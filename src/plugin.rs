@@ -51,14 +51,18 @@ impl Plugin for InstancedMaterialPlugin {
             .add_systems(
                 Render,
                 (
-                    (queue_instanced_material, queue_instanced_material_compute_pipeline)
+                    (
+                        queue_instanced_material,
+                        queue_instanced_material_compute_pipeline,
+                    )
                         .in_set(RenderSystems::QueueMeshes),
                     (
                         prepare_indirect_draw_buffer,
                         prepare_instance_buffer,
                         prepare_global_cull_buffer,
                         prepare_instanced_bind_group,
-                        prepare_instanced_material_compute_resources.after(prepare_global_cull_buffer),
+                        prepare_instanced_material_compute_resources
+                            .after(prepare_global_cull_buffer),
                     )
                         .in_set(RenderSystems::PrepareResources),
                 ),
