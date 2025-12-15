@@ -128,16 +128,30 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
                     offset: 0,
                     shader_location: 8,
                 },
+                // Rotation
+                VertexAttribute {
+                    format: VertexFormat::Float32,
+                    offset: VertexFormat::Float32.size(),
+                    shader_location: 9,
+                },
                 // Index
                 VertexAttribute {
                     format: VertexFormat::Uint32,
-                    offset: VertexFormat::Float32x4.size(),
-                    shader_location: 9,
+                    offset: VertexFormat::Float32x3.size(),
+                    shader_location: 10,
                 },
             ],
         });
 
         descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+
+        if key.material_key.contains(InstancedMaterialKey::POINTS) {
+            descriptor.primitive.polygon_mode = PolygonMode::Point;
+        }
+
+        if key.material_key.contains(InstancedMaterialKey::LINES){
+            descriptor.primitive.polygon_mode = PolygonMode::Line;
+        }
 
         Ok(descriptor)
     }

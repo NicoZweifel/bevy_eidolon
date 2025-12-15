@@ -49,6 +49,7 @@ fn setup(
         debug: false,
         gpu_cull: false,
         debug_color: Default::default(),
+        ..default()
     });
 
     const SIZE: i32 = 10;

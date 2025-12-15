@@ -8,12 +8,18 @@
 #import bevy_pbr::utils::rand_f
 #import bevy_pbr::mesh_bindings::mesh
 
+struct InstanceInfo {
+    world_from_local: mat4x4<f32>,
+    instance_position: vec4<f32>,
+    wrapped_time: f32,
+    instance_index: u32,
+#ifdef VERTEX_TANGENTS
+    tangent: vec4<f32>
+#endif
+}
+
 struct MaterialUniform {
     debug_color: vec4<f32>
-};
-
-struct WindMaterialUniform {
-    wind: Wind,
 };
 
 struct InstanceUniforms {
@@ -49,7 +55,8 @@ struct Vertex {
 #endif
 
     @location(8) i_pos_scale: vec4<f32>,
-    @location(9) i_index: u32,
+    @location(9) i_rotation: f32,
+    @location(10) i_index: u32,
 };
 
 struct VertexOutput {
@@ -71,19 +78,51 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
 
-    // --- INSTANCE ---
-    var instance: InstanceInfo;
-
     var scale = vertex.i_pos_scale.w;
     var translation = vertex.i_pos_scale.xyz;
 
-    var world_from_local_matrix: mat4x4<f32>;
+    let angle = vertex.i_rotation;
 
-    var rand_state = vertex.i_index;
+    let c = cos(angle);
+    let s = sin(angle);
+
+    let rot_y_matrix = mat3x3<f32>(
+        vec3<f32>(c, 0.0, s),
+        vec3<f32>(0.0, 1.0, 0.0),
+        vec3<f32>(-s, 0.0, c)
+    );
+
+    let rot_scale_matrix = rot_y_matrix * scale;
+
+    let world_from_local = mat4x4<f32>(
+        vec4<f32>(rot_scale_matrix[0], 0.0),
+        vec4<f32>(rot_scale_matrix[1], 0.0),
+        vec4<f32>(rot_scale_matrix[2], 0.0),
+        vec4<f32>(translation, 1.0)
+    );
+
+    let world_position = world_from_local * vec4<f32>(vertex.position, 1.0);
+
+    out.clip_position = view.clip_from_world * world_position;
+    out.world_position = world_position.xyz;
+
+#ifdef VERTEX_NORMALS
+    out.world_normal = normalize(rot_scale_matrix * vertex.normal);
+#else
+    out.world_normal = vec3<f32>(0.0, 1.0, 0.0);
+#endif
+
+#ifdef VERTEX_UVS_A
+    out.uv = vertex.uv;
+#else
+    out.uv = vec2<f32>(0.0);
+#endif
 
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = get_visibility_range_dither_level(
-        instance_uniforms.visibility_range, instance.world_from_local[3]);
+        instance_uniforms.visibility_range,
+        vec4<f32>(translation, 1.0)
+    );
 #endif
 
     return out;
@@ -118,10 +157,8 @@ fn fragment(
 #endif
 
 #ifdef VISIBILITY_RANGE_DITHER
-    #ifndef SHADOW_PASS
-        bevy_pbr::pbr_functions::visibility_range_dither(in.clip_position, in.visibility_range_dither);
-    #endif
+    bevy_pbr::pbr_functions::visibility_range_dither(in.clip_position, in.visibility_range_dither);
 #endif
 
-    return in.color;
+    return instance_uniforms.color;
 }

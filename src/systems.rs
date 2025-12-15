@@ -32,6 +32,8 @@ bitflags! {
     pub struct InstancedMaterialKey: u64 {
         const DEBUG = 1 << 0;
         const GPU_CULL = 1 << 2;
+        const LINES = 1 << 3;
+        const POINTS = 1 << 4;
     }
 }
 
@@ -47,6 +49,8 @@ pub(crate) fn add_instance_key_component(
 
         let mut key = InstancedMaterialKey::empty();
 
+        key.set(InstancedMaterialKey::POINTS, material.polygon_mode == PolygonMode::Point);
+        key.set(InstancedMaterialKey::LINES, material.polygon_mode == PolygonMode::Line);
         key.set(InstancedMaterialKey::DEBUG, material.debug);
         key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull);
 

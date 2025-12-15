@@ -24,7 +24,7 @@ use bevy_render::{
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-pub struct InstancedComputeLabel;
+pub struct InstancedMaterialComputeLabel;
 
 pub struct InstancedMaterialPlugin;
 
@@ -70,8 +70,8 @@ impl Plugin for InstancedMaterialPlugin {
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
-        render_graph.add_node(InstancedComputeLabel, compute_node);
-        render_graph.add_node_edge(InstancedComputeLabel, CameraDriverLabel);
+        render_graph.add_node(InstancedMaterialComputeLabel, compute_node);
+        render_graph.add_node_edge(InstancedMaterialComputeLabel, CameraDriverLabel);
     }
 
     fn finish(&self, app: &mut App) {
