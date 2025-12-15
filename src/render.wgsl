@@ -109,7 +109,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = get_visibility_range_dither_level(
-        instance_uniform.visibility_range,
+        instance_uniforms.visibility_range,
         vec4<f32>(translation, 1.0)
     );
 #endif
