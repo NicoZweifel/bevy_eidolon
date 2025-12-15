@@ -31,7 +31,8 @@ fn setup(
     mut instanced_materials: ResMut<Assets<InstancedMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let mesh_handle = meshes.add(create_triangle_with_foliage_uvs());
+    let mesh_handle = meshes.add(Mesh::from(TriMesh));
+
     let aabb = Aabb {
         center: Vec3A::new(0.25, 0.375, 0.0),
         half_extents: Vec3A::new(0.25, 1.125, 0.0),
@@ -56,15 +57,11 @@ fn setup(
 
     let instances = (-SIZE..SIZE)
         .enumerate()
-        .map(|(i, x)| {
-            InstanceData {
-                position: Vec3::new(x as f32, 0.25 * 4., x as f32),
-                scale: 4.0,
-                // NOTE:
-                // for testing, to remove rotation, pass the same index (e.g., 0) for all items here.
-                index: i as u32,
-                ..default()
-            }
+        .map(|(i, x)| InstanceData {
+            position: Vec3::new(x as f32, 0.25 * 4., x as f32),
+            scale: 4.0,
+            index: i as u32,
+            ..default()
         })
         .collect();
 
@@ -90,61 +87,65 @@ fn setup(
     ));
 }
 
-/// Creates a subdivided triangle mesh on the x and y-axis with normals/UVs.
-fn create_triangle_with_foliage_uvs() -> Mesh {
-    let pos_bottom_left = [0.0, -0.25, 0.0];
-    let pos_top_center = [0.25, 0.5, 0.0];
-    let pos_bottom_right = [0.5, -0.25, 0.0];
+/// A simple struct representing a subdivided triangle mesh.
+/// UV's and normals aren't used in the shaders currently, but for testing purposes in the future it won't hurt.
+struct TriMesh;
 
-    let uv_bottom_left = [0.0, 0.0];
-    let uv_top_center = [0.5, 1.0];
-    let uv_bottom_right = [1.0, 0.0];
+impl From<TriMesh> for Mesh {
+    fn from(_: TriMesh) -> Self {
+        let pos_bottom_left = [0.0, -0.25, 0.0];
+        let pos_top_center = [0.25, 0.5, 0.0];
+        let pos_bottom_right = [0.5, -0.25, 0.0];
 
-    // Midpoints
-    let pos_bottom_center = [0.25, -0.25, 0.0];
-    let pos_mid_left = [0.125, 0.125, 0.0];
-    let pos_mid_right = [0.375, 0.125, 0.0];
+        let uv_bottom_left = [0.0, 0.0];
+        let uv_top_center = [0.5, 1.0];
+        let uv_bottom_right = [1.0, 0.0];
 
-    let uv_bottom_center = [0.5, 0.0];
-    let uv_mid_left = [0.25, 0.5];
-    let uv_mid_right = [0.75, 0.5];
+        // Midpoints
+        let pos_bottom_center = [0.25, -0.25, 0.0];
+        let pos_mid_left = [0.125, 0.125, 0.0];
+        let pos_mid_right = [0.375, 0.125, 0.0];
 
-    let positions = vec![
-        pos_bottom_left,
-        pos_top_center,
-        pos_bottom_right,
-        pos_bottom_center,
-        pos_mid_left,
-        pos_mid_right,
-    ];
+        let uv_bottom_center = [0.5, 0.0];
+        let uv_mid_left = [0.25, 0.5];
+        let uv_mid_right = [0.75, 0.5];
 
-    let uvs = vec![
-        uv_bottom_left,
-        uv_top_center,
-        uv_bottom_right,
-        uv_bottom_center,
-        uv_mid_left,
-        uv_mid_right,
-    ];
+        let positions = vec![
+            pos_bottom_left,
+            pos_top_center,
+            pos_bottom_right,
+            pos_bottom_center,
+            pos_mid_left,
+            pos_mid_right,
+        ];
 
-    // All normals point forward
-    let normals = vec![[0.0, 0.0, 1.0]; 6];
+        let uvs = vec![
+            uv_bottom_left,
+            uv_top_center,
+            uv_bottom_right,
+            uv_bottom_center,
+            uv_mid_left,
+            uv_mid_right,
+        ];
 
-    // Indices for the 4 new triangles (CCW)
-    let indices = Indices::U32(vec![
-        0, 3, 4, // Bottom-left triangle
-        3, 2, 5, // Bottom-right triangle
-        4, 5, 1, // Top triangle
-        3, 5, 4, // Center triangle
-    ]);
+        // All normals point forward
+        let normals = vec![[0.0, 0.0, 1.0]; 6];
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, Default::default());
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+        // Indices for the 4 new triangles (CCW)
+        let indices = Indices::U32(vec![
+            0, 3, 4, // Bottom-left triangle
+            3, 2, 5, // Bottom-right triangle
+            4, 5, 1, // Top triangle
+            3, 5, 4, // Center triangle
+        ]);
 
-    // Generate tangents, which are required by the shader for normal mapping and the curve effect.
-    mesh.generate_tangents().unwrap();
-    mesh.insert_indices(indices);
-    mesh
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, Default::default());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+
+        mesh.generate_tangents().unwrap();
+        mesh.insert_indices(indices);
+        mesh
+    }
 }

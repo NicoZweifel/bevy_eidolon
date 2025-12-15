@@ -89,6 +89,8 @@ fn setup(
         NoAutomaticBatching,
         Transform::default(),
         Visibility::Visible,
+        // NOTE:
+        // for testing, to remove rotation, pass the same index (e.g., 0) for all items here.
         Aabb {
             center: aabb.center,
             half_extents: aabb.half_extents * SIZE as f32 * 2.,

@@ -59,7 +59,7 @@ fn setup(
 
     let material_handle = instanced_materials.add(InstancedMaterial {
         debug: false,
-        // Signal to the material that it is in the GPU driven pipeline (not used currently)
+        // Signal to the material that it is in the GPU-driven pipeline (not used currently)
         gpu_cull: true,
         debug_color: Default::default(),
         polygon_mode: PolygonMode::Line,
@@ -97,6 +97,8 @@ fn setup(
         Visibility::Visible,
         // Use GPU driven pipeline
         GpuCull,
+        // Disable frustum culling or provide aabb.
+        // NoFrustumCulling,
         Aabb {
             center: single_aabb.center,
             half_extents: single_aabb.half_extents
