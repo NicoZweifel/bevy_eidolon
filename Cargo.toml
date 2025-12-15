@@ -1,6 +1,6 @@
 [package]
 name = "bevy_eidolon"
-version = "0.0.1-rc.2"
+version = "0.0.1-rc.3"
 edition = "2024"
 description = "Generic instanced material for the bevy game engine."
 license = "MIT OR Apache-2.0"

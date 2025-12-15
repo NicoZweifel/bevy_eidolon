@@ -9,8 +9,7 @@ use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
 use bevy_eidolon::prelude::*;
 use bevy_math::{Vec3, Vec3A};
-use bevy_mesh::{Indices, Mesh, Mesh3d, MeshBuilder, PlaneMeshBuilder, PrimitiveTopology};
-use bevy_pbr::{MeshMaterial3d, StandardMaterial};
+use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy_render::batching::NoAutomaticBatching;
 use bevy_render::render_resource::PolygonMode;
 use bevy_transform::prelude::Transform;
@@ -56,7 +55,7 @@ fn setup(
     });
 
     const SIDE_LENGTH: i32 = 1400;
-    const SPACING: f32 = 0.1;
+    const SPACING: f32 = 0.2;
 
     let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
         .flat_map(|x| (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z)))
