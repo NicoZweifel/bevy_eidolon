@@ -1,6 +1,7 @@
 use crate::{
     components::{GpuDrawIndexedIndirect, InstancedComputeBindGroup, InstancedComputeSourceBuffer},
     pipeline::InstancedComputePipeline,
+    resources::GlobalCullBuffer,
 };
 use bevy_ecs::prelude::*;
 use bevy_render::{
@@ -9,9 +10,9 @@ use bevy_render::{
     renderer::RenderContext,
 };
 
-use crate::resources::GlobalCullBuffer;
+
 #[cfg(feature = "trace")]
-use tracing::{error, trace};
+use tracing::{error, trace, warn};
 
 enum InstancedComputeNodeState {
     Loading,
@@ -103,6 +104,8 @@ impl Node for InstancedComputeNode {
         if let Some(global_buffer) = world.get_resource::<GlobalCullBuffer>() {
             pass.set_bind_group(1, &global_buffer.bind_group, &[]);
         } else {
+            #[cfg(feature = "trace")]
+            warn!("No global cull buffer found. Skipping instanced material gpu compute culling.");
             return Ok(());
         }
 
