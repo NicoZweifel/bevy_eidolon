@@ -6,23 +6,29 @@ use super::{
 };
 use crate::pipeline::InstancedComputePipeline;
 use bevy_asset::Assets;
-use bevy_core_pipeline::core_3d::AlphaMask3d;
-use bevy_core_pipeline::prepass::{
-    DepthPrepass, MotionVectorPrepass, NormalPrepass, OpaqueNoLightmap3dBatchSetKey,
-    OpaqueNoLightmap3dBinKey,
+use bevy_core_pipeline::{
+    core_3d::AlphaMask3d,
+    prepass::{
+        DepthPrepass, MotionVectorPrepass, NormalPrepass, OpaqueNoLightmap3dBatchSetKey,
+        OpaqueNoLightmap3dBinKey,
+    },
 };
-use bevy_ecs::prelude::*;
-use bevy_ecs::system::SystemChangeTick;
+use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
-use bevy_render::batching::gpu_preprocessing::GpuPreprocessingSupport;
-use bevy_render::mesh::allocator::MeshAllocator;
-use bevy_render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
-use bevy_render::view::Msaa;
 use bevy_render::{
-    mesh::RenderMesh, render_asset::RenderAssets, render_phase::DrawFunctions, render_resource::*,
-    sync_world::MainEntity, view::ExtractedView,
+    batching::gpu_preprocessing::GpuPreprocessingSupport,
+    mesh::RenderMesh,
+    mesh::allocator::MeshAllocator,
+    render_asset::RenderAssets,
+    render_phase::DrawFunctions,
+    render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases},
+    render_resource::*,
+    sync_world::MainEntity,
+    view::ExtractedView,
+    view::Msaa,
 };
 use bevy_utils::default;
+
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 
@@ -38,7 +44,7 @@ bitflags! {
     }
 }
 
-pub(crate) fn add_instance_key_component(
+pub(super) fn add_instance_key_component(
     mut commands: Commands,
     materials: Res<Assets<InstancedMaterial>>,
     query: Query<(Entity, &InstancedMeshMaterial), Without<InstancePipelineKey>>,
@@ -69,7 +75,7 @@ pub(crate) fn add_instance_key_component(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn queue_instanced_material(
+pub(super) fn queue_instanced_material(
     alpha_mask_3d_draw_functions: Res<DrawFunctions<AlphaMask3d>>,
     custom_pipeline: Res<InstancedMaterialPipeline>,
     mut pipelines: ResMut<SpecializedMeshPipelines<InstancedMaterialPipeline>>,
@@ -161,7 +167,7 @@ pub(crate) fn queue_instanced_material(
     }
 }
 
-pub fn queue_instanced_compute_pipeline(
+pub(super) fn queue_instanced_material_compute_pipeline(
     pipeline_cache: Res<PipelineCache>,
     mut compute_pipeline: ResMut<InstancedComputePipeline>,
 ) {
@@ -170,8 +176,11 @@ pub fn queue_instanced_compute_pipeline(
     }
 
     let id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-        label: Some("instanced_compute_pipeline".into()),
-        layout: vec![compute_pipeline.layout.clone()],
+        label: Some("instanced_material_compute_pipeline".into()),
+        layout: vec![
+            compute_pipeline.entity_layout.clone(),
+            compute_pipeline.global_layout.clone(),
+        ],
         push_constant_ranges: vec![],
         shader: compute_pipeline.shader.clone(),
         shader_defs: vec![],

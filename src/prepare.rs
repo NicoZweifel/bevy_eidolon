@@ -1,19 +1,24 @@
 use crate::pipeline::{InstancedComputePipeline, InstancedMaterialPipeline};
 use crate::prelude::*;
 use crate::resources::{CameraCullData, GlobalCullBuffer, LodCullData};
+
 use bevy_camera::Camera;
 use bevy_ecs::prelude::*;
 use bevy_math::Vec4;
 use bevy_pbr::RenderMeshInstances;
-use bevy_render::mesh::allocator::MeshAllocator;
-use bevy_render::mesh::{RenderMesh, RenderMeshBufferInfo};
-use bevy_render::render_asset::RenderAssets;
-use bevy_render::render_resource::{
-    BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages, DrawIndexedIndirectArgs,
+use bevy_render::{
+    mesh::allocator::MeshAllocator,
+    mesh::{RenderMesh, RenderMeshBufferInfo},
+    render_asset::RenderAssets,
+    render_resource::{
+        BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages,
+        DrawIndexedIndirectArgs,
+    },
+    renderer::{RenderDevice, RenderQueue},
+    sync_world::MainEntity,
+    view::ExtractedView,
 };
-use bevy_render::renderer::{RenderDevice, RenderQueue};
-use bevy_render::sync_world::MainEntity;
-use bevy_render::view::ExtractedView;
+
 use bytemuck::bytes_of;
 
 #[cfg(feature = "trace")]
@@ -66,44 +71,60 @@ fn create_buffer(
     });
 }
 
-pub(super) fn prepare_instance_uniform_buffer(
-    mut cmd: Commands,
+pub(super) fn prepare_instanced_bind_group(
+    mut commands: Commands,
     query: Query<(
         Entity,
+        &InstancedMeshMaterial,
         &InstanceMaterialData,
         Option<&InstanceUniformBuffer>,
     )>,
+    render_materials: Res<RenderAssets<PreparedInstancedMaterial>>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     pipeline: Res<InstancedMaterialPipeline>,
 ) {
-    let bind_group_layout = pipeline.instance_uniform_layout.clone();
+    for (entity, material_handle, instance_data, uniform_buffer) in &query {
+        let Some(prepared_material) = render_materials.get(&material_handle.0) else {
+            continue;
+        };
 
-    for (entity, instance_data, uniform_buffer_opt) in &query {
         let uniforms: InstanceUniforms = instance_data.into();
         let contents = bytes_of(&uniforms);
 
-        if let Some(uniform_buffer) = uniform_buffer_opt {
-            render_queue.write_buffer(&uniform_buffer.buffer, 0, contents);
+        let buffer = if let Some(ub) = uniform_buffer {
+            render_queue.write_buffer(&ub.buffer, 0, contents);
+            ub.buffer.clone()
         } else {
-            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            let b = render_device.create_buffer_with_data(&BufferInitDescriptor {
                 label: Some("instanced_material_uniform_buffer"),
                 contents,
                 usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             });
+            commands
+                .entity(entity)
+                .insert(InstanceUniformBuffer { buffer: b.clone() });
+            b
+        };
 
-            let bind_group = render_device.create_bind_group(
-                "instanced_material_uniform_bind_group",
-                &bind_group_layout,
-                &[BindGroupEntry {
+        let bind_group = render_device.create_bind_group(
+            "instanced_material_combined_bind_group",
+            &pipeline.combined_layout,
+            &[
+                BindGroupEntry {
                     binding: 0,
+                    resource: prepared_material.buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 1,
                     resource: buffer.as_entire_binding(),
-                }],
-            );
+                },
+            ],
+        );
 
-            cmd.entity(entity)
-                .insert(InstanceUniformBuffer { buffer, bind_group });
-        }
+        commands
+            .entity(entity)
+            .insert(InstancedCombinedBindGroup(bind_group));
     }
 }
 
@@ -174,6 +195,7 @@ pub(super) fn prepare_global_cull_buffer(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     global_buffer: Option<ResMut<GlobalCullBuffer>>,
+    pipeline: Res<InstancedComputePipeline>,
 ) {
     if views.is_empty() {
         #[cfg(feature = "trace")]
@@ -201,11 +223,21 @@ pub(super) fn prepare_global_cull_buffer(
             contents,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
-        commands.insert_resource(GlobalCullBuffer { buffer });
+
+        let bind_group = render_device.create_bind_group(
+            "instanced_global_cull_bind_group",
+            &pipeline.global_layout,
+            &[BindGroupEntry {
+                binding: 0,
+                resource: buffer.as_entire_binding(),
+            }],
+        );
+
+        commands.insert_resource(GlobalCullBuffer { buffer, bind_group });
     }
 }
 
-pub(super) fn prepare_instanced_compute_resources(
+pub(super) fn prepare_instanced_material_compute_resources(
     mut commands: Commands,
     query: Query<
         (
@@ -213,23 +245,28 @@ pub(super) fn prepare_instanced_compute_resources(
             &MainEntity,
             &InstanceMaterialData,
             Option<&InstancedComputeSourceBuffer>,
+            Option<&GpuDrawIndexedIndirect>,
         ),
         With<GpuCull>,
     >,
     render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
     render_mesh_instances: Res<RenderMeshInstances>,
     meshes: Res<RenderAssets<RenderMesh>>,
     mesh_allocator: Res<MeshAllocator>,
     pipeline: Res<InstancedComputePipeline>,
-    global_cull_buffer: Option<Res<GlobalCullBuffer>>,
 ) {
-    let Some(cull_buffer) = global_cull_buffer else {
-        return;
-    };
-
-    for (entity, main_entity, instance_data, source_buffer) in &query {
+    for (entity, main_entity, instance_data, existing_source, existing_indirect) in &query {
         let count = instance_data.instances.len();
         if count == 0 {
+            continue;
+        }
+
+        if existing_source.is_some_and(|s| s.count == count as u32) {
+            if let Some(indirect) = existing_indirect {
+                render_queue.write_buffer(&indirect.buffer, 4, &[0, 0, 0, 0]);
+            }
+
             continue;
         }
 
@@ -282,7 +319,7 @@ pub(super) fn prepare_instanced_compute_resources(
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
-        let source_buffer = if let Some(existing) = source_buffer
+        let source_buffer = if let Some(existing) = existing_source
             && existing.count == count as u32
         {
             existing.buffer.clone()
@@ -303,8 +340,8 @@ pub(super) fn prepare_instanced_compute_resources(
         });
 
         let bind_group = render_device.create_bind_group(
-            "instanced_material_compute_bind_group",
-            &pipeline.layout,
+            "instanced_material_compute_entity_bind_group",
+            &pipeline.entity_layout, // Group 0 Layout
             &[
                 BindGroupEntry {
                     binding: 0,
@@ -320,10 +357,6 @@ pub(super) fn prepare_instanced_compute_resources(
                 },
                 BindGroupEntry {
                     binding: 3,
-                    resource: cull_buffer.buffer.as_entire_binding(),
-                },
-                BindGroupEntry {
-                    binding: 4,
                     resource: lod_buffer.as_entire_binding(),
                 },
             ],

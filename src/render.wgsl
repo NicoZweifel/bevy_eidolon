@@ -17,9 +17,8 @@ struct InstanceUniforms {
     visibility_range: vec4<f32>,
 };
 
-@group(3) @binding(50) var<uniform> material: MaterialUniform;
-@group(4) @binding(0)
-var<uniform> instance_uniforms: InstanceUniforms;
+@group(3) @binding(0) var<uniform> material: MaterialUniform;
+@group(3) @binding(1) var<uniform> instance_uniforms: InstanceUniforms;
 
 struct Vertex {
     @location(0) position: vec3<f32>,

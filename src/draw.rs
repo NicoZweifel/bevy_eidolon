@@ -14,64 +14,29 @@ pub type DrawInstancedMaterial = (
     SetMeshViewBindGroup<0>,
     SetMeshViewBindingArrayBindGroup<1>,
     SetMeshBindGroup<2>,
-    SetInstancedMaterialBindGroup<3>,
-    SetInstancedMaterialInstanceUniformsBindGroup<4>,
+    SetInstancedCombinedBindGroup<3>,
     DrawInstancedMaterialMesh,
 );
 
-pub struct SetInstancedMaterialBindGroup<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialBindGroup<I> {
-    type Param = SRes<RenderAssets<PreparedInstancedMaterial>>;
+pub struct SetInstancedCombinedBindGroup<const I: usize>;
 
-    type ViewQuery = ();
-
-    type ItemQuery = Read<InstancedMeshMaterial>;
-
-    #[inline]
-    fn render<'w>(
-        _item: &P,
-        _view: (),
-        items: Option<&'w InstancedMeshMaterial>,
-        prepared_materials: SystemParamItem<'w, '_, Self::Param>,
-
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        let Some(material) = items else {
-            return RenderCommandResult::Skip;
-        };
-
-        let Some(prepared_material) = prepared_materials.into_inner().get(&material.0) else {
-            return RenderCommandResult::Skip;
-        };
-
-        pass.set_bind_group(I, &prepared_material.bind_group, &[]);
-
-        RenderCommandResult::Success
-    }
-}
-
-pub struct SetInstancedMaterialInstanceUniformsBindGroup<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialInstanceUniformsBindGroup<I> {
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedCombinedBindGroup<I> {
     type Param = ();
-
     type ViewQuery = ();
-
-    type ItemQuery = Read<InstanceUniformBuffer>;
+    type ItemQuery = Read<InstancedCombinedBindGroup>;
 
     #[inline]
     fn render<'w>(
         _item: &P,
         _view: (),
-        items: Option<&'w InstanceUniformBuffer>,
+        item: Option<&'w InstancedCombinedBindGroup>,
         _param: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(instance_uniform_buffer) = items else {
+        let Some(bg) = item else {
             return RenderCommandResult::Skip;
         };
-
-        pass.set_bind_group(I, &instance_uniform_buffer.bind_group, &[]);
-
+        pass.set_bind_group(I, &bg.0, &[]);
         RenderCommandResult::Success
     }
 }

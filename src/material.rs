@@ -1,20 +1,22 @@
 use bevy_asset::{Asset, AssetId, Handle};
 use bevy_color::{Color, ColorToComponents};
-use bevy_ecs::prelude::*;
-use bevy_ecs::query::QueryItem;
-use bevy_ecs::system::{SystemParamItem, lifetimeless::SRes};
+use bevy_ecs::{
+    prelude::*,
+    query::QueryItem,
+    system::{SystemParamItem, lifetimeless::SRes},
+};
 use bevy_math::Vec4;
 use bevy_reflect::TypePath;
-use bevy_render::extract_component::ExtractComponent;
-use bevy_render::render_asset::{PrepareAssetError, RenderAsset};
-use bevy_render::render_resource::{
-    AsBindGroup, AsBindGroupError, BindGroup, PolygonMode, ShaderType,
+use bevy_render::{
+    extract_component::ExtractComponent,
+    render_asset::{PrepareAssetError, RenderAsset},
+    render_resource::{Buffer, BufferInitDescriptor, BufferUsages, PolygonMode, ShaderType},
+    renderer::RenderDevice,
 };
-use bevy_render::renderer::RenderDevice;
-use bytemuck::Zeroable;
 
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]
-#[uniform(50, MaterialUniform)]
+use bytemuck::{Pod, Zeroable};
+
+#[derive(Asset, TypePath, Debug, Clone, Default)]
 pub struct InstancedMaterial {
     pub debug: bool,
     pub gpu_cull: bool,
@@ -24,7 +26,7 @@ pub struct InstancedMaterial {
 }
 
 #[repr(C)]
-#[derive(ShaderType, Clone, Zeroable, Copy)]
+#[derive(ShaderType, Clone, Zeroable, Copy, Pod)]
 pub struct MaterialUniform {
     pub debug_color: Vec4,
 }
@@ -49,35 +51,30 @@ impl ExtractComponent for InstancedMeshMaterial {
 }
 
 pub struct PreparedInstancedMaterial {
-    pub bind_group: BindGroup,
+    pub buffer: Buffer,
 }
 
 impl RenderAsset for PreparedInstancedMaterial {
     type SourceAsset = InstancedMaterial;
-    type Param = (
-        SRes<RenderDevice>,
-        <InstancedMaterial as AsBindGroup>::Param,
-    );
+    type Param = SRes<RenderDevice>;
 
     fn prepare_asset(
         source_asset: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
-        (render_device, param): &mut SystemParamItem<Self::Param>,
+        render_device: &mut SystemParamItem<Self::Param>,
         _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        match source_asset.as_bind_group(
-            &InstancedMaterial::bind_group_layout(render_device),
-            render_device,
-            param,
-        ) {
-            Ok(x) => Ok(PreparedInstancedMaterial {
-                bind_group: x.bind_group,
-            }),
-            Err(AsBindGroupError::RetryNextUpdate) => {
-                Err(PrepareAssetError::RetryNextUpdate(source_asset))
-            }
-            Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
-        }
+        let uniform_data = MaterialUniform {
+            debug_color: source_asset.debug_color.to_linear().to_vec4(),
+        };
+
+        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("instanced_material_uniform_buffer"),
+            contents: bytemuck::bytes_of(&uniform_data),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
+        Ok(PreparedInstancedMaterial { buffer })
     }
 }
 

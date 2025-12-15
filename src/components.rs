@@ -1,13 +1,16 @@
 use bevy_color::{Color, LinearRgba};
 use bevy_derive::{Deref, DerefMut};
-use bevy_ecs::prelude::*;
-use bevy_ecs::query::QueryItem;
+use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::{Vec3, Vec4};
 use bevy_reflect::Reflect;
-use bevy_render::render_resource::Buffer;
-use bevy_render::{extract_component::ExtractComponent, render_resource::BindGroup};
+use bevy_render::{
+    extract_component::ExtractComponent,
+    render_resource::{BindGroup, Buffer},
+};
 use bevy_utils::default;
+
 use bytemuck::{Pod, Zeroable};
+
 use std::fmt;
 use std::sync::Arc;
 
@@ -110,9 +113,11 @@ impl From<&InstanceMaterialData> for InstanceUniforms {
 }
 
 #[derive(Component)]
+pub struct InstancedCombinedBindGroup(pub BindGroup);
+
+#[derive(Component)]
 pub struct InstanceUniformBuffer {
     pub buffer: Buffer,
-    pub bind_group: BindGroup,
 }
 
 #[derive(Component)]

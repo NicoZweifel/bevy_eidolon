@@ -9,6 +9,7 @@ use bevy_render::{
     renderer::RenderContext,
 };
 
+use crate::resources::GlobalCullBuffer;
 #[cfg(feature = "trace")]
 use tracing::{error, trace};
 
@@ -98,6 +99,12 @@ impl Node for InstancedComputeNode {
                 });
 
         pass.set_pipeline(pipeline);
+
+        if let Some(global_buffer) = world.get_resource::<GlobalCullBuffer>() {
+            pass.set_bind_group(1, &global_buffer.bind_group, &[]);
+        } else {
+            return Ok(());
+        }
 
         for (source, bind_group, _indirect) in self.query.iter_manual(world) {
             pass.set_bind_group(0, &bind_group.0, &[]);

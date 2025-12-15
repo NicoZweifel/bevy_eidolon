@@ -2,6 +2,7 @@
 
 struct InstanceData {
     pos_and_scale: vec4<f32>,
+
     rotation: f32,
     index: u32,
     pad1: u32,
@@ -27,8 +28,9 @@ struct LodCullData {
 @group(0) @binding(0) var<storage, read> source_buffer: array<InstanceData>;
 @group(0) @binding(1) var<storage, read_write> instance_buffer: array<InstanceData>;
 @group(0) @binding(2) var<storage, read_write> indirect_args: DrawIndexedIndirectArgs;
-@group(0) @binding(3) var<uniform> camera: CameraCullData;
-@group(0) @binding(4) var<uniform> lod_data: LodCullData;
+@group(0) @binding(3) var<uniform> lod_data: LodCullData;
+
+@group(1) @binding(0) var<uniform> camera: CameraCullData;
 
 
 fn hash_noise(index: u32) -> f32 {

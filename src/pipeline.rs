@@ -1,5 +1,5 @@
-use super::{components::InstanceData, material::InstancedMaterial};
-use crate::prelude::InstanceUniforms;
+use super::components::InstanceData;
+use crate::prelude::{InstanceUniforms, MaterialUniform};
 use crate::resources::{CameraCullData, LodCullData};
 use crate::systems::InstancedMaterialKey;
 
@@ -25,29 +25,39 @@ pub struct InstancedMaterialPipelineKey {
 pub struct InstancedMaterialPipeline {
     pub shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
-    pub material_layout: BindGroupLayout,
-    pub instance_uniform_layout: BindGroupLayout,
+    pub combined_layout: BindGroupLayout,
 }
 
 impl FromWorld for InstancedMaterialPipeline {
     fn from_world(world: &mut World) -> Self {
         let mesh_pipeline = world.resource::<MeshPipeline>().clone();
         let render_device = world.resource::<RenderDevice>();
-        let material_layout = InstancedMaterial::bind_group_layout(render_device);
         let asset_server = world.resource::<AssetServer>();
 
-        let instance_uniform_layout = render_device.create_bind_group_layout(
-            "instance_uniform_layout",
-            &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: BufferSize::new(size_of::<InstanceUniforms>() as u64),
+        let combined_layout = render_device.create_bind_group_layout(
+            "instanced_material_combined_layout",
+            &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: BufferSize::new(size_of::<MaterialUniform>() as u64),
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::VERTEX_FRAGMENT,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: BufferSize::new(size_of::<InstanceUniforms>() as u64),
+                    },
+                    count: None,
+                },
+            ],
         );
 
         InstancedMaterialPipeline {
@@ -55,8 +65,7 @@ impl FromWorld for InstancedMaterialPipeline {
                 AssetPath::from_path_buf(embedded_path!("render.wgsl")).with_source("embedded"),
             ),
             mesh_pipeline,
-            material_layout,
-            instance_uniform_layout,
+            combined_layout,
         }
     }
 }
@@ -71,8 +80,7 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
 
-        descriptor.layout.push(self.material_layout.clone());
-        descriptor.layout.push(self.instance_uniform_layout.clone());
+        descriptor.layout.push(self.combined_layout.clone());
 
         if let Some(ds) = descriptor.depth_stencil.as_mut() {
             ds.depth_write_enabled = true;
@@ -131,13 +139,13 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
                 // Rotation
                 VertexAttribute {
                     format: VertexFormat::Float32,
-                    offset: VertexFormat::Float32.size(),
+                    offset: VertexFormat::Float32x4.size(),
                     shader_location: 9,
                 },
                 // Index
                 VertexAttribute {
                     format: VertexFormat::Uint32,
-                    offset: VertexFormat::Float32x3.size(),
+                    offset: VertexFormat::Float32x4.size() + VertexFormat::Float32.size(),
                     shader_location: 10,
                 },
             ],
@@ -166,7 +174,8 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
 
 #[derive(Resource)]
 pub struct InstancedComputePipeline {
-    pub layout: BindGroupLayout,
+    pub entity_layout: BindGroupLayout,
+    pub global_layout: BindGroupLayout,
     pub shader: Handle<Shader>,
     pub pipeline_id: Option<CachedComputePipelineId>,
 }
@@ -175,14 +184,13 @@ impl FromWorld for InstancedComputePipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
-
         let instance_size = size_of::<InstanceData>() as u64;
         let min_size = NonZeroU64::new(instance_size);
 
-        let layout = render_device.create_bind_group_layout(
-            "instanced_compute_layout",
+        let entity_layout = render_device.create_bind_group_layout(
+            "instanced_material_compute_entity_layout",
             &[
-                // Source_buffer
+                // Source
                 BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::COMPUTE,
@@ -193,7 +201,7 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // InstanceBuffer
+                // Output
                 BindGroupLayoutEntry {
                     binding: 1,
                     visibility: ShaderStages::COMPUTE,
@@ -204,32 +212,20 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // IndirectArgs
+                // Indirect Args
                 BindGroupLayoutEntry {
                     binding: 2,
                     visibility: ShaderStages::COMPUTE,
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
-                        // 5 * 4 bytes = 20 bytes
                         min_binding_size: NonZeroU64::new(20),
                     },
                     count: None,
                 },
-                // CameraCullBuffer
+                // LOD Data
                 BindGroupLayoutEntry {
                     binding: 3,
-                    visibility: ShaderStages::COMPUTE,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(CameraCullData::min_size()),
-                    },
-                    count: None,
-                },
-                // LodCullBuffer
-                BindGroupLayoutEntry {
-                    binding: 4,
                     visibility: ShaderStages::COMPUTE,
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
@@ -241,11 +237,26 @@ impl FromWorld for InstancedComputePipeline {
             ],
         );
 
+        let global_layout = render_device.create_bind_group_layout(
+            "instanced_material_compute_global_layout",
+            &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::COMPUTE,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: Some(CameraCullData::min_size()),
+                },
+                count: None,
+            }],
+        );
+
         let shader = asset_server
             .load(AssetPath::from_path_buf(embedded_path!("cull.wgsl")).with_source("embedded"));
 
         InstancedComputePipeline {
-            layout,
+            entity_layout,
+            global_layout,
             shader,
             pipeline_id: None,
         }
