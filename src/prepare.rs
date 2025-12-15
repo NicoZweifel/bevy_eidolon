@@ -1,8 +1,6 @@
 use crate::pipeline::{InstancedComputePipeline, InstancedMaterialPipeline};
-use crate::resources::{
-    CameraCullData, GlobalCullBuffer, GrassBufferCache, LodCullData,
-};
 use crate::prelude::*;
+use crate::resources::{CameraCullData, GlobalCullBuffer, GrassBufferCache, LodCullData};
 use bevy_camera::Camera;
 use bevy_ecs::prelude::*;
 use bevy_math::Vec4;

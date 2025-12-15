@@ -66,10 +66,7 @@ pub(crate) fn queue_instanced_material(
     render_mesh_instances: Res<RenderMeshInstances>,
     material_meshes: Query<
         (Entity, &MainEntity, &InstancePipelineKey),
-        (
-            With<InstanceMaterialData>,
-            With<InstancedMeshMaterial>,
-        ),
+        (With<InstanceMaterialData>, With<InstancedMeshMaterial>),
     >,
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,

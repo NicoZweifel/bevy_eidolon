@@ -1,7 +1,6 @@
 #[path = "utils/example.rs"]
 mod example;
 
-use std::sync::Arc;
 use bevy_app::{App, AppExit, Startup};
 use bevy_asset::Assets;
 use bevy_camera::primitives::Aabb;
@@ -14,16 +13,14 @@ use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_render::batching::NoAutomaticBatching;
 use bevy_transform::prelude::Transform;
 use bevy_utils::default;
+use std::sync::Arc;
 
 use bevy_eidolon::prelude::*;
 use example::*;
 
 fn main() -> AppExit {
     App::new()
-        .add_plugins((
-            ExamplePlugin,
-            InstancedMaterialPlugin,
-        ))
+        .add_plugins((ExamplePlugin, InstancedMaterialPlugin))
         .add_systems(Startup, setup)
         .run()
 }

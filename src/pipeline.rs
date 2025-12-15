@@ -1,5 +1,5 @@
 use super::{components::InstanceData, material::InstancedMaterial};
-use crate::prelude::{InstanceUniforms};
+use crate::prelude::InstanceUniforms;
 use crate::resources::{CameraCullData, LodCullData};
 use crate::systems::InstancedMaterialKey;
 
@@ -14,7 +14,6 @@ use bevy_shader::Shader;
 
 use std::mem::size_of;
 use std::num::NonZeroU64;
-
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct InstancedMaterialPipelineKey {

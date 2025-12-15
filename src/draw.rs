@@ -20,9 +20,7 @@ pub type DrawInstancedMaterial = (
 );
 
 pub struct SetInstancedMaterialBindGroup<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P>
-    for SetInstancedMaterialBindGroup<I>
-{
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedMaterialBindGroup<I> {
     type Param = SRes<RenderAssets<PreparedInstancedMaterial>>;
 
     type ViewQuery = ();
