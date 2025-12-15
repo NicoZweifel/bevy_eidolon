@@ -79,7 +79,7 @@ impl Node for InstancedComputeNode {
                 }
                 CachedPipelineState::Creating(_) => {
                     #[cfg(feature = "trace")]
-                    trace!("Compute Material pipeline is creating...");
+                    trace!("Instanced Material compute pipeline is creating...");
                 }
             }
         }
