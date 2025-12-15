@@ -1,7 +1,7 @@
 use super::{
     components::{InstanceMaterialData, InstancePipelineKey},
     draw::DrawInstancedMaterial,
-    material::{InstancedMeshMaterial},
+    material::InstancedMeshMaterial,
     pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
 };
 use crate::pipeline::InstancedComputePipeline;
@@ -50,7 +50,7 @@ pub(super) fn add_instance_key_component<M>(
     materials: Res<Assets<M>>,
     query: Query<(Entity, &InstancedMeshMaterial<M>), Without<InstancePipelineKey>>,
 ) where
-    M: InstancedMaterial
+    M: InstancedMaterial,
 {
     for (entity, material_handle) in &query {
         let Some(material) = materials.get(&material_handle.0) else {

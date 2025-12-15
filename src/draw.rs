@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use crate::prelude::*;
 use bevy_ecs::system::{SystemParamItem, lifetimeless::*};
 use bevy_pbr::{
@@ -9,6 +8,7 @@ use bevy_render::{
     render_asset::RenderAssets,
     render_phase::*,
 };
+use std::marker::PhantomData;
 
 pub type DrawInstancedMaterial<M> = (
     SetItemPipeline,
@@ -44,12 +44,12 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedCombinedBind
     }
 }
 
-pub struct DrawInstancedMaterialMesh<M:InstancedMaterial>(PhantomData<M>);
+pub struct DrawInstancedMaterialMesh<M: InstancedMaterial>(PhantomData<M>);
 
 impl<P, M> RenderCommand<P> for DrawInstancedMaterialMesh<M>
 where
     P: PhaseItem,
-    M: InstancedMaterial
+    M: InstancedMaterial,
 {
     type Param = (
         SRes<RenderAssets<RenderMesh>>,

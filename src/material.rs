@@ -1,4 +1,5 @@
-use std::marker::PhantomData;
+use bevy_render::batching::NoAutomaticBatching;
+use crate::pipeline::InstancedMaterialPipeline;
 use bevy_asset::{Asset, AssetId, Handle};
 use bevy_color::{Color, ColorToComponents};
 use bevy_ecs::{
@@ -10,34 +11,29 @@ use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_pbr::MeshPipelineKey;
 use bevy_reflect::TypePath;
+use bevy_render::render_resource::AsBindGroupError;
 use bevy_render::{
-    prelude::AlphaMode,
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
         extract_component::ExtractComponent,
         render_asset::{PrepareAssetError, RenderAsset},
-        render_resource::{Buffer, BufferInitDescriptor, BufferUsages, PolygonMode, ShaderType},
+        render_resource::{OwnedBindingResource, PolygonMode, ShaderType},
         renderer::RenderDevice,
     },
 };
 use bevy_shader::ShaderRef;
-
 use bytemuck::{Pod, Zeroable};
+use std::marker::PhantomData;
 
 pub trait InstancedMaterial: Asset + AsBindGroup + TypePath + Clone + Sized + Send + Sync {
-    /// The vertex shader. Should usually import the instancing logic.
+    /// The vertex shader.
     fn vertex_shader() -> ShaderRef {
-        "embedded://render.wgsl".into()
+        ShaderRef::Default
     }
 
     /// The fragment shader.
     fn fragment_shader() -> ShaderRef {
-        "embedded://render.wgsl".into()
-    }
-
-    /// Alpha mode for transparency (Opaque, Blend, Mask).
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Opaque
+        ShaderRef::Default
     }
 
     /// Allow specializing the pipeline (e.g. enabling shader defs based on material settings).
@@ -67,11 +63,12 @@ pub trait InstancedMaterial: Asset + AsBindGroup + TypePath + Clone + Sized + Se
     }
 
     fn gpu_cull(&self) -> bool {
-       false
+        false
     }
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]
+#[uniform(0, InstancedMaterialUniforms)]
 pub struct StandardInstancedMaterial {
     pub debug: bool,
     pub gpu_cull: bool,
@@ -103,17 +100,18 @@ impl InstancedMaterial for StandardInstancedMaterial {
 
 #[repr(C)]
 #[derive(ShaderType, Clone, Zeroable, Copy, Pod)]
-pub struct MaterialUniforms {
+pub struct InstancedMaterialUniforms {
     pub debug_color: Vec4,
 }
 
-impl MaterialUniforms {
+impl InstancedMaterialUniforms {
     pub fn new(debug_color: Vec4) -> Self {
         Self { debug_color }
     }
 }
 
 #[derive(Component, Clone, Debug)]
+#[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;
@@ -129,42 +127,53 @@ impl<M: InstancedMaterial> ExtractComponent for InstancedMeshMaterial<M> {
 }
 
 pub struct PreparedInstancedMaterial<M> {
-    pub buffer: Buffer,
+    pub bindings: Vec<(u32, OwnedBindingResource)>,
     _phantom: PhantomData<M>,
 }
 
-impl <M> PreparedInstancedMaterial<M>{
-    pub fn new(buffer: Buffer) -> Self {
-        Self { buffer, _phantom: PhantomData }
+impl<M> PreparedInstancedMaterial<M> {
+    pub fn new(bindings: Vec<(u32, OwnedBindingResource)>) -> Self {
+        Self {
+            bindings,
+            _phantom: PhantomData,
+        }
     }
 }
 
 impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
     type SourceAsset = M;
-    type Param = SRes<RenderDevice>;
+    type Param = (
+        SRes<RenderDevice>,
+        SRes<InstancedMaterialPipeline<M>>,
+        <M as AsBindGroup>::Param,
+    );
 
     fn prepare_asset(
         source_asset: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
-        render_device: &mut SystemParamItem<Self::Param>,
+        (render_device, pipeline, material_params): &mut SystemParamItem<Self::Param>,
         _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        let uniform_data = MaterialUniforms {
-            debug_color: source_asset.debug_color().to_linear().to_vec4(),
-        };
-
-        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("instanced_material_uniform_buffer"),
-            contents: bytemuck::bytes_of(&uniform_data),
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        });
-
-        Ok(PreparedInstancedMaterial::new( buffer ))
+        match source_asset.unprepared_bind_group(
+            &pipeline.material_layout,
+            render_device,
+            material_params,
+            false,
+        ) {
+            Ok(unprepared) => Ok(PreparedInstancedMaterial {
+                bindings: unprepared.bindings.0,
+                _phantom: PhantomData,
+            }),
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                Err(PrepareAssetError::RetryNextUpdate(source_asset))
+            }
+            Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
+        }
     }
 }
 
-impl<'a> From<&'a StandardInstancedMaterial> for MaterialUniforms {
+impl<'a> From<&'a StandardInstancedMaterial> for InstancedMaterialUniforms {
     fn from(material: &'a StandardInstancedMaterial) -> Self {
-        MaterialUniforms::new(material.debug_color.to_linear().to_vec4())
+        InstancedMaterialUniforms::new(material.debug_color.to_linear().to_vec4())
     }
 }

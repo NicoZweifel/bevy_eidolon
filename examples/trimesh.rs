@@ -4,13 +4,10 @@ mod example;
 use bevy_app::{App, AppExit, Startup};
 use bevy_asset::Assets;
 use bevy_camera::primitives::Aabb;
-use bevy_camera::visibility::Visibility;
 use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
 use bevy_math::{Vec3, Vec3A};
 use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
-use bevy_render::batching::NoAutomaticBatching;
-use bevy_transform::prelude::Transform;
 use bevy_utils::default;
 use std::sync::Arc;
 
@@ -19,7 +16,11 @@ use example::*;
 
 fn main() -> AppExit {
     App::new()
-        .add_plugins((ExamplePlugin, InstancedMaterialPlugin::<StandardInstancedMaterial>::default()))
+        .add_plugins((
+            ExamplePlugin,
+            InstancedMaterialCorePlugin,
+            InstancedMaterialPlugin::<StandardInstancedMaterial>::default(),
+        ))
         .add_systems(Startup, setup)
         .run()
 }
@@ -67,9 +68,6 @@ fn setup(
         InstancedMeshMaterial(material_handle),
         Mesh3d(mesh_handle),
         instance_material_data,
-        NoAutomaticBatching,
-        Transform::default(),
-        Visibility::Visible,
         // Disable frustum culling or provide aabb.
         // NoFrustumCulling,
         Aabb {

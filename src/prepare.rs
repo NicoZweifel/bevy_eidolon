@@ -71,6 +71,8 @@ fn create_buffer(
     });
 }
 
+pub const INSTANCE_BINDING_INDEX: u32 = 100;
+
 pub(super) fn prepare_instanced_bind_group<M>(
     mut commands: Commands,
     query: Query<(
@@ -111,19 +113,24 @@ pub(super) fn prepare_instanced_bind_group<M>(
             buffer
         };
 
+        let mut entries: Vec<BindGroupEntry> = prepared_material
+            .bindings
+            .iter()
+            .map(|(index, resource)| BindGroupEntry {
+                binding: *index,
+                resource: resource.get_binding(),
+            })
+            .collect();
+
+        entries.push(BindGroupEntry {
+            binding: INSTANCE_BINDING_INDEX,
+            resource: buffer.as_entire_binding(),
+        });
+
         let bind_group = render_device.create_bind_group(
             "instanced_material_combined_bind_group",
             &pipeline.combined_layout,
-            &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: prepared_material.buffer.as_entire_binding(),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: buffer.as_entire_binding(),
-                },
-            ],
+            &entries,
         );
 
         commands
@@ -148,8 +155,7 @@ pub(super) fn prepare_indirect_draw_buffer(
     mesh_allocator: Res<MeshAllocator>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-) 
-{
+) {
     for (entity, main_entity, instance_buffer, indirect_buffer_opt) in &query {
         let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
             continue;

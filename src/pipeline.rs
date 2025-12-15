@@ -1,5 +1,4 @@
-use super::components::InstanceData;
-use crate::prelude::{InstanceUniforms, InstancedMaterial, MaterialUniforms};
+use crate::prelude::*;
 use crate::resources::{CameraCullData, LodCullData};
 use crate::systems::InstancedMaterialKey;
 
@@ -8,10 +7,11 @@ use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout};
 use bevy_pbr::{MeshPipeline, MeshPipelineKey};
 use bevy_render::{render_resource::*, renderer::RenderDevice};
-use bevy_shader::Shader;
+use bevy_shader::{Shader, ShaderRef};
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use crate::prepare::INSTANCE_BINDING_INDEX;
 use std::mem::size_of;
 use std::num::NonZeroU64;
 
@@ -23,21 +23,19 @@ pub struct InstancedMaterialPipelineKey {
 
 #[derive(Resource)]
 pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
-    pub shader: Handle<Shader>,
+    pub vertex_shader: Handle<Shader>,
+    pub fragment_shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
-    pub combined_layout: BindGroupLayout,
-    pub _phantom: PhantomData<M>,
-}
 
-impl<M: InstancedMaterial> InstancedMaterialPipeline<M> {
-    pub fn new(mesh_pipeline: MeshPipeline, combined_layout: BindGroupLayout) -> Self {
-        Self {
-            mesh_pipeline,
-            combined_layout,
-            shader: Default::default(),
-            _phantom: PhantomData,
-        }
-    }
+    /// The layout of the material's bindings only.
+    /// Used in `prepare_asset` to call `unprepared_bind_group`.
+    pub material_layout: BindGroupLayout,
+
+    /// The final layout including Material bindings + Instance Uniforms.
+    /// Used in the render pipeline.
+    pub combined_layout: BindGroupLayout,
+
+    pub _phantom: PhantomData<M>,
 }
 
 impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
@@ -46,37 +44,64 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
         let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
 
-        let combined_layout = render_device.create_bind_group_layout(
-            "instanced_material_combined_layout",
-            &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: BufferSize::new(size_of::<MaterialUniforms>() as u64),
-                    },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: BufferSize::new(size_of::<InstanceUniforms>() as u64),
-                    },
-                    count: None,
-                },
-            ],
+        let material_entries = M::bind_group_layout_entries(render_device, false);
+        let material_layout = render_device.create_bind_group_layout(
+            format!("instanced_material_layout_{}", std::any::type_name::<M>()).as_str(),
+            &material_entries,
         );
 
-        InstancedMaterialPipeline::<M> {
-            shader: asset_server.load(
-                AssetPath::from_path_buf(embedded_path!("render.wgsl")).with_source("embedded"),
-            ),
-            ..InstancedMaterialPipeline::<M>::new(mesh_pipeline, combined_layout)
+        let mut combined_entries = material_entries.clone();
+        if combined_entries
+            .iter()
+            .any(|e| e.binding == INSTANCE_BINDING_INDEX)
+        {
+            panic!(
+                "InstancedMaterial {} uses reserved binding slot {}!",
+                std::any::type_name::<M>(),
+                INSTANCE_BINDING_INDEX
+            );
+        }
+
+        combined_entries.push(BindGroupLayoutEntry {
+            binding: INSTANCE_BINDING_INDEX,
+            visibility: ShaderStages::VERTEX_FRAGMENT,
+            ty: BindingType::Buffer {
+                ty: BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: NonZeroU64::new(size_of::<InstanceUniforms>() as u64),
+            },
+            count: None,
+        });
+
+        let combined_layout = render_device.create_bind_group_layout(
+            format!(
+                "instanced_material_combined_layout_{}",
+                std::any::type_name::<M>()
+            )
+            .as_str(),
+            &combined_entries,
+        );
+
+        let resolve_shader = |shader_ref: ShaderRef| -> Handle<Shader> {
+            match shader_ref {
+                ShaderRef::Default => asset_server.load(
+                    AssetPath::from_path_buf(embedded_path!("render.wgsl")).with_source("embedded"),
+                ),
+                ShaderRef::Handle(handle) => handle,
+                ShaderRef::Path(path) => asset_server.load(path),
+            }
+        };
+
+        let vertex_shader = resolve_shader(M::vertex_shader());
+        let fragment_shader = resolve_shader(M::fragment_shader());
+
+        InstancedMaterialPipeline {
+            vertex_shader,
+            fragment_shader,
+            mesh_pipeline,
+            material_layout,
+            combined_layout,
+            _phantom: PhantomData,
         }
     }
 }
@@ -106,15 +131,6 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
 
         shader_defs.push("VISIBILITY_RANGE_DITHER".into());
 
-        // TODO cull in compute shader
-        /*
-        let gpu_cull = key.wind_key.contains(WindAffectedKey::GPU_CULL);
-        if gpu_cull {
-            key.mesh_key
-                .remove(MeshPipelineKey::VISIBILITY_RANGE_DITHER);
-        }
-        */
-
         if let Some(fragment) = descriptor.fragment.as_mut() {
             if let Some(target) = fragment.targets.get_mut(0)
                 && let Some(target) = target
@@ -122,12 +138,6 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
                 target.blend = None;
             }
 
-            // TODO cull in compute shader
-            /*
-            if !gpu_cull {
-                fragment.shader_defs.push("VISIBILITY_RANGE_DITHER".into());
-            }
-             */
             fragment.shader_defs.push("VISIBILITY_RANGE_DITHER".into());
 
             if key.material_key.contains(InstancedMaterialKey::DEBUG) {
@@ -135,7 +145,8 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
             }
         }
 
-        descriptor.vertex.shader = self.shader.clone();
+        descriptor.vertex.shader = self.vertex_shader.clone();
+        descriptor.fragment.as_mut().unwrap().shader = self.fragment_shader.clone();
 
         descriptor.vertex.buffers.push(VertexBufferLayout {
             array_stride: size_of::<InstanceData>() as u64,
@@ -162,16 +173,12 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
             ],
         });
 
-        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
-
         if key.material_key.contains(InstancedMaterialKey::POINTS) {
             descriptor.primitive.polygon_mode = PolygonMode::Point;
         }
-
         if key.material_key.contains(InstancedMaterialKey::LINES) {
             descriptor.primitive.polygon_mode = PolygonMode::Line;
         }
-
         if key
             .material_key
             .contains(InstancedMaterialKey::DOUBLE_SIDED)
@@ -201,7 +208,6 @@ impl FromWorld for InstancedComputePipeline {
         let entity_layout = render_device.create_bind_group_layout(
             "instanced_material_compute_entity_layout",
             &[
-                // Source
                 BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::COMPUTE,
@@ -212,7 +218,6 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Output
                 BindGroupLayoutEntry {
                     binding: 1,
                     visibility: ShaderStages::COMPUTE,
@@ -223,7 +228,6 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // Indirect Args
                 BindGroupLayoutEntry {
                     binding: 2,
                     visibility: ShaderStages::COMPUTE,
@@ -234,7 +238,6 @@ impl FromWorld for InstancedComputePipeline {
                     },
                     count: None,
                 },
-                // LOD Data
                 BindGroupLayoutEntry {
                     binding: 3,
                     visibility: ShaderStages::COMPUTE,

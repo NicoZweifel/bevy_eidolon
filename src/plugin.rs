@@ -44,16 +44,12 @@ impl Plugin for InstancedMaterialCorePlugin {
         render_app.add_systems(
             Render,
             (
-                (
-                    queue_instanced_material_compute_pipeline,
-                )
-                    .in_set(RenderSystems::QueueMeshes),
+                (queue_instanced_material_compute_pipeline,).in_set(RenderSystems::QueueMeshes),
                 (
                     prepare_instance_buffer,
                     prepare_indirect_draw_buffer,
                     prepare_global_cull_buffer,
-                    prepare_instanced_material_compute_resources
-                        .after(prepare_global_cull_buffer),
+                    prepare_instanced_material_compute_resources.after(prepare_global_cull_buffer),
                 )
                     .in_set(RenderSystems::PrepareResources),
             ),
@@ -62,8 +58,8 @@ impl Plugin for InstancedMaterialCorePlugin {
         let compute_node = InstancedComputeNode::from_world(render_app.world_mut());
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
-            render_graph.add_node(InstancedMaterialComputeLabel, compute_node);
-            render_graph.add_node_edge(InstancedMaterialComputeLabel, CameraDriverLabel);
+        render_graph.add_node(InstancedMaterialComputeLabel, compute_node);
+        render_graph.add_node_edge(InstancedMaterialComputeLabel, CameraDriverLabel);
     }
 
     fn finish(&self, app: &mut App) {
@@ -82,8 +78,6 @@ impl<M: InstancedMaterial> Default for InstancedMaterialPlugin<M> {
 
 impl<M: InstancedMaterial> Plugin for InstancedMaterialPlugin<M> {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InstancedMaterialCorePlugin);
-
         app.init_asset::<M>();
 
         app.add_plugins((
@@ -101,11 +95,8 @@ impl<M: InstancedMaterial> Plugin for InstancedMaterialPlugin<M> {
                 Render,
                 (
                     // Generic: Queues draw commands for this specific M
-                    queue_instanced_material::<M>
-                        .in_set(RenderSystems::QueueMeshes),
-
-                    prepare_instanced_bind_group::<M>
-                        .in_set(RenderSystems::PrepareResources),
+                    queue_instanced_material::<M>.in_set(RenderSystems::QueueMeshes),
+                    prepare_instanced_bind_group::<M>.in_set(RenderSystems::PrepareResources),
                 ),
             );
     }
