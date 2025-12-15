@@ -793,7 +793,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_eidolon"
-version = "0.0.1-rc.3"
+version = "0.0.1-rc.4"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -807,7 +807,6 @@ dependencies = [
  "bevy_math",
  "bevy_mesh",
  "bevy_pbr",
- "bevy_platform",
  "bevy_reflect",
  "bevy_render",
  "bevy_shader",
