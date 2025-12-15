@@ -7,6 +7,7 @@ use bevy_camera::primitives::Aabb;
 use bevy_camera::visibility::Visibility;
 use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
+use bevy_eidolon::prelude::*;
 use bevy_math::{Vec3, Vec3A};
 use bevy_mesh::{Indices, Mesh, Mesh3d, MeshBuilder, PlaneMeshBuilder, PrimitiveTopology};
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
@@ -14,7 +15,6 @@ use bevy_render::batching::NoAutomaticBatching;
 use bevy_render::render_resource::PolygonMode;
 use bevy_transform::prelude::Transform;
 use bevy_utils::default;
-use bevy_eidolon::prelude::*;
 
 use std::sync::Arc;
 
@@ -54,7 +54,7 @@ fn setup(
             base_color: GRAY_500.into(),
             ..default()
         })),
-        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(140.0).build())),
+        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(150.0).build())),
     ));
 
     let material_handle = instanced_materials.add(InstancedMaterial {
@@ -65,21 +65,17 @@ fn setup(
         polygon_mode: PolygonMode::Line,
     });
 
-    const SIDE_LENGTH: i32 = 2000;
+    const SIDE_LENGTH: i32 = 1400;
     const SPACING: f32 = 0.1;
 
     let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
-        .flat_map(|x| {
-            (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z))
-        })
+        .flat_map(|x| (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z)))
         .enumerate()
-        .map(|(i, (x, z))| {
-            InstanceData {
-                position: Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
-                scale: 1.0,
-                index: i as u32,
-                ..default()
-            }
+        .map(|(i, (x, z))| InstanceData {
+            position: Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
+            scale: 1.0,
+            index: i as u32,
+            ..default()
         })
         .collect();
 
@@ -103,11 +99,12 @@ fn setup(
         GpuCull,
         Aabb {
             center: single_aabb.center,
-            half_extents: single_aabb.half_extents + Vec3A::new(
-                (SIDE_LENGTH as f32 * SPACING) / 2.0,
-                0.0,
-                (SIDE_LENGTH as f32 * SPACING) / 2.0
-            ),
+            half_extents: single_aabb.half_extents
+                + Vec3A::new(
+                    (SIDE_LENGTH as f32 * SPACING) / 2.0,
+                    0.0,
+                    (SIDE_LENGTH as f32 * SPACING) / 2.0,
+                ),
         },
     ));
 }
@@ -120,15 +117,13 @@ struct LineStrip {
 
 impl From<LineStrip> for Mesh {
     fn from(line: LineStrip) -> Self {
-       let point_count = line.points.len();
+        let point_count = line.points.len();
         Mesh::new(
             PrimitiveTopology::LineStrip,
             RenderAssetUsages::RENDER_WORLD,
         )
         // Required for GPU culling (Indexed drawing)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, line.points).with_inserted_indices(
-            Indices::U32((0..point_count as u32).collect())
-        )
-
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, line.points)
+        .with_inserted_indices(Indices::U32((0..point_count as u32).collect()))
     }
 }

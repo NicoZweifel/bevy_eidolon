@@ -7,7 +7,9 @@ use bevy_math::Vec4;
 use bevy_reflect::TypePath;
 use bevy_render::extract_component::ExtractComponent;
 use bevy_render::render_asset::{PrepareAssetError, RenderAsset};
-use bevy_render::render_resource::{AsBindGroup, AsBindGroupError, BindGroup, PolygonMode, ShaderType};
+use bevy_render::render_resource::{
+    AsBindGroup, AsBindGroupError, BindGroup, PolygonMode, ShaderType,
+};
 use bevy_render::renderer::RenderDevice;
 use bytemuck::Zeroable;
 
@@ -17,7 +19,7 @@ pub struct InstancedMaterial {
     pub debug: bool,
     pub gpu_cull: bool,
     pub debug_color: Color,
-    pub polygon_mode: PolygonMode
+    pub polygon_mode: PolygonMode,
 }
 
 #[repr(C)]

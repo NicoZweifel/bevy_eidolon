@@ -177,9 +177,7 @@ pub(super) fn prepare_global_cull_buffer(
 ) {
     if views.is_empty() {
         #[cfg(feature = "trace")]
-        warn!(
-            "No active camera/view found for culling."
-        );
+        warn!("No active camera/view found for culling.");
         return;
     }
 

@@ -40,7 +40,7 @@ impl ExtractComponent for InstancePipelineKey {
 pub struct InstanceData {
     pub position: Vec3,
     pub scale: f32,
-    
+
     pub rotation: f32,
     pub index: u32,
     pub _padding: [u32; 2],

@@ -149,7 +149,7 @@ impl SpecializedMeshPipeline for InstancedMaterialPipeline {
             descriptor.primitive.polygon_mode = PolygonMode::Point;
         }
 
-        if key.material_key.contains(InstancedMaterialKey::LINES){
+        if key.material_key.contains(InstancedMaterialKey::LINES) {
             descriptor.primitive.polygon_mode = PolygonMode::Line;
         }
 

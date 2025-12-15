@@ -7,6 +7,7 @@ use bevy_camera::primitives::Aabb;
 use bevy_camera::visibility::Visibility;
 use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
+use bevy_eidolon::prelude::*;
 use bevy_math::{Vec3, Vec3A};
 use bevy_mesh::{Mesh, Mesh3d, MeshBuilder, PlaneMeshBuilder, PrimitiveTopology};
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
@@ -14,7 +15,6 @@ use bevy_render::batching::NoAutomaticBatching;
 use bevy_render::render_resource::PolygonMode;
 use bevy_transform::prelude::Transform;
 use bevy_utils::default;
-use bevy_eidolon::prelude::*;
 
 use std::sync::Arc;
 
@@ -68,13 +68,11 @@ fn setup(
 
     let instances = (-SIZE..SIZE)
         .enumerate()
-        .map(|(i, x)| {
-            InstanceData {
-                position: Vec3::new(x as f32, 0.25 * 4., x as f32),
-                scale: 4.0,
-                index: i as u32,
-                ..default()
-            }
+        .map(|(i, x)| InstanceData {
+            position: Vec3::new(x as f32, 0.25 * 4., x as f32),
+            scale: 4.0,
+            index: i as u32,
+            ..default()
         })
         .collect();
 
