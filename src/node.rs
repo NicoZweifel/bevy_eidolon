@@ -10,7 +10,6 @@ use bevy_render::{
     renderer::RenderContext,
 };
 
-
 #[cfg(feature = "trace")]
 use tracing::{error, trace, warn};
 
