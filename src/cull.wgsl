@@ -2,8 +2,8 @@
 
 struct InstanceData {
     pos_and_scale: vec4<f32>,
+    rotation: f32,
     index: u32,
-    pad1: u32,
     pad2: u32,
     pad3: u32,
 }
