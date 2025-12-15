@@ -44,7 +44,7 @@ fn setup(
 
     let mesh_handle = meshes.add(Mesh::from(line_strip));
 
-    let aabb = Aabb {
+    let single_aabb = Aabb {
         center: Vec3A::new(0.0, 0.125, 0.0),
         half_extents: Vec3A::new(0.1, 0.375, 0.0),
     };
@@ -54,7 +54,7 @@ fn setup(
             base_color: GRAY_500.into(),
             ..default()
         })),
-        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(80.).build())),
+        Mesh3d(meshes.add(PlaneMeshBuilder::from_length(140.0).build())),
     ));
 
     let material_handle = instanced_materials.add(InstancedMaterial {
@@ -64,24 +64,31 @@ fn setup(
         polygon_mode: PolygonMode::Line,
     });
 
-    const SIZE: i32 = 10;
+    const SIDE_LENGTH: i32 = 1415;
+    const SPACING: f32 = 0.1;
 
-    let instances = (-SIZE..SIZE)
+    let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
+        .flat_map(|x| {
+            (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z))
+        })
         .enumerate()
-        .map(|(i, x)| {
+        .map(|(i, (x, z))| {
             InstanceData {
-                position: Vec3::new(x as f32, 0.25 * 4., x as f32),
-                scale: 4.0,
+                position: Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
+                scale: 1.0,
                 index: i as u32,
                 ..default()
             }
         })
         .collect();
 
+    let instance_count = instances.len();
+    println!("Spawning {} instances...", instance_count);
+
     let instance_material_data = InstanceMaterialData {
         instances: Arc::new(instances),
         color: GREEN_500.into(),
-        visibility_range: [0.0, 0.0, 1000.0, 1000.0].into(),
+        visibility_range: [0.0, 0.0, 2000.0, 2000.0].into(),
     };
 
     cmd.spawn((
@@ -92,8 +99,12 @@ fn setup(
         Transform::default(),
         Visibility::Visible,
         Aabb {
-            center: aabb.center,
-            half_extents: aabb.half_extents * SIZE as f32 * 2.,
+            center: single_aabb.center,
+            half_extents: single_aabb.half_extents + Vec3A::new(
+                (SIDE_LENGTH as f32 * SPACING) / 2.0,
+                0.0,
+                (SIDE_LENGTH as f32 * SPACING) / 2.0
+            ),
         },
     ));
 }
@@ -107,12 +118,9 @@ struct LineStrip {
 impl From<LineStrip> for Mesh {
     fn from(line: LineStrip) -> Self {
         Mesh::new(
-            // This tells wgpu that the positions are a list of points
-            // where a line will be drawn between each consecutive point
             PrimitiveTopology::LineStrip,
             RenderAssetUsages::RENDER_WORLD,
         )
-        // Add the point positions as an attribute
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, line.points)
     }
 }
