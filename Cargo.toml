@@ -2,7 +2,7 @@
 name = "bevy_eidolon"
 version = "0.0.1-rc.1"
 edition = "2024"
-description = "Generic Instanced Material for the bevy game engine."
+description = "Generic instanced material for the bevy game engine."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/NicoZweifel/bevy_feronia"
 
