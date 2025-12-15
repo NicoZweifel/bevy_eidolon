@@ -55,7 +55,7 @@ fn create_buffer(
     let contents = bytemuck::cast_slice(instance_vec.as_slice());
 
     let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: Some("instance data buffer"),
+        label: Some("instanced_material_data_buffer"),
         contents,
         usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
     });
@@ -87,13 +87,13 @@ pub(super) fn prepare_instance_uniform_buffer(
             render_queue.write_buffer(&uniform_buffer.buffer, 0, contents);
         } else {
             let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                label: Some("instance uniform buffer"),
+                label: Some("instanced_material_uniform_buffer"),
                 contents,
                 usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             });
 
             let bind_group = render_device.create_bind_group(
-                "instance_uniform_bind_group",
+                "instanced_material_uniform_bind_group",
                 &bind_group_layout,
                 &[BindGroupEntry {
                     binding: 0,
@@ -178,7 +178,7 @@ pub(super) fn prepare_global_cull_buffer(
     if views.is_empty() {
         #[cfg(feature = "trace")]
         warn!(
-            "No active camera/view found for culling. Did you add `Center` to the camera/player controller?"
+            "No active camera/view found for culling."
         );
         return;
     }

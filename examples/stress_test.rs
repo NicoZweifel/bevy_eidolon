@@ -8,7 +8,7 @@ use bevy_camera::visibility::Visibility;
 use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
 use bevy_math::{Vec3, Vec3A};
-use bevy_mesh::{Mesh, Mesh3d, MeshBuilder, PlaneMeshBuilder, PrimitiveTopology};
+use bevy_mesh::{Indices, Mesh, Mesh3d, MeshBuilder, PlaneMeshBuilder, PrimitiveTopology};
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_render::batching::NoAutomaticBatching;
 use bevy_render::render_resource::PolygonMode;
@@ -59,12 +59,13 @@ fn setup(
 
     let material_handle = instanced_materials.add(InstancedMaterial {
         debug: false,
-        gpu_cull: false,
+        // Signal to the material that it is in the GPU driven pipeline (not used currently)
+        gpu_cull: true,
         debug_color: Default::default(),
         polygon_mode: PolygonMode::Line,
     });
 
-    const SIDE_LENGTH: i32 = 1415;
+    const SIDE_LENGTH: i32 = 2000;
     const SPACING: f32 = 0.1;
 
     let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
@@ -98,6 +99,8 @@ fn setup(
         NoAutomaticBatching,
         Transform::default(),
         Visibility::Visible,
+        // Use GPU driven pipeline
+        GpuCull,
         Aabb {
             center: single_aabb.center,
             half_extents: single_aabb.half_extents + Vec3A::new(
@@ -117,10 +120,15 @@ struct LineStrip {
 
 impl From<LineStrip> for Mesh {
     fn from(line: LineStrip) -> Self {
+       let point_count = line.points.len();
         Mesh::new(
             PrimitiveTopology::LineStrip,
             RenderAssetUsages::RENDER_WORLD,
         )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, line.points)
+        // Required for GPU culling (Indexed drawing)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, line.points).with_inserted_indices(
+            Indices::U32((0..point_count as u32).collect())
+        )
+
     }
 }
