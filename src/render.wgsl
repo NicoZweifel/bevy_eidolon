@@ -149,5 +149,5 @@ fn fragment(
     bevy_pbr::pbr_functions::visibility_range_dither(in.clip_position, in.visibility_range_dither);
 #endif
 
-    return instance_uniform.color;
+    return instance_uniforms.color;
 }
