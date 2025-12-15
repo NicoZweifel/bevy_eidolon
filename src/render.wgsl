@@ -8,16 +8,6 @@
 #import bevy_pbr::utils::rand_f
 #import bevy_pbr::mesh_bindings::mesh
 
-struct InstanceInfo {
-    world_from_local: mat4x4<f32>,
-    instance_position: vec4<f32>,
-    wrapped_time: f32,
-    instance_index: u32,
-#ifdef VERTEX_TANGENTS
-    tangent: vec4<f32>
-#endif
-}
-
 struct MaterialUniform {
     debug_color: vec4<f32>
 };
