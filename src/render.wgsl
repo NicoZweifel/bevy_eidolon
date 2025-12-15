@@ -8,7 +8,7 @@
 #import bevy_pbr::utils::rand_f
 #import bevy_pbr::mesh_bindings::mesh
 
-struct MaterialUniform {
+struct MaterialUniforms {
     debug_color: vec4<f32>
 };
 
@@ -17,7 +17,7 @@ struct InstanceUniforms {
     visibility_range: vec4<f32>,
 };
 
-@group(3) @binding(0) var<uniform> material: MaterialUniform;
+@group(3) @binding(0) var<uniform> material: MaterialUniforms;
 @group(3) @binding(100) var<uniform> instance_uniforms: InstanceUniforms;
 
 struct Vertex {
