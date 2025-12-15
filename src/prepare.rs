@@ -71,19 +71,21 @@ fn create_buffer(
     });
 }
 
-pub(super) fn prepare_instanced_bind_group(
+pub(super) fn prepare_instanced_bind_group<M>(
     mut commands: Commands,
     query: Query<(
         Entity,
-        &InstancedMeshMaterial,
+        &InstancedMeshMaterial<M>,
         &InstanceMaterialData,
         Option<&InstanceUniformBuffer>,
     )>,
-    render_materials: Res<RenderAssets<PreparedInstancedMaterial>>,
+    render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    pipeline: Res<InstancedMaterialPipeline>,
-) {
+    pipeline: Res<InstancedMaterialPipeline<M>>,
+) where
+    M: InstancedMaterial,
+{
     for (entity, material_handle, instance_data, uniform_buffer) in &query {
         let Some(prepared_material) = render_materials.get(&material_handle.0) else {
             continue;
@@ -139,14 +141,15 @@ pub(super) fn prepare_indirect_draw_buffer(
             &InstanceBuffer,
             Option<&GpuDrawIndexedIndirect>,
         ),
-        (With<InstancedMeshMaterial>, Without<GpuCull>),
+        Without<GpuCull>,
     >,
     render_mesh_instances: Res<RenderMeshInstances>,
     meshes: Res<RenderAssets<RenderMesh>>,
     mesh_allocator: Res<MeshAllocator>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-) {
+) 
+{
     for (entity, main_entity, instance_buffer, indirect_buffer_opt) in &query {
         let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
             continue;

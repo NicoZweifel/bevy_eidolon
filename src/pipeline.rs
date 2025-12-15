@@ -1,9 +1,7 @@
 use super::components::InstanceData;
-use crate::prelude::{InstanceUniforms, MaterialUniforms};
+use crate::prelude::{InstanceUniforms, InstancedMaterial, MaterialUniforms};
 use crate::resources::{CameraCullData, LodCullData};
 use crate::systems::InstancedMaterialKey;
-
-use std::hash::Hash;
 
 use bevy_asset::*;
 use bevy_ecs::prelude::*;
@@ -11,6 +9,8 @@ use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout};
 use bevy_pbr::{MeshPipeline, MeshPipelineKey};
 use bevy_render::{render_resource::*, renderer::RenderDevice};
 use bevy_shader::Shader;
+use std::hash::Hash;
+use std::marker::PhantomData;
 
 use std::mem::size_of;
 use std::num::NonZeroU64;
@@ -22,13 +22,25 @@ pub struct InstancedMaterialPipelineKey {
 }
 
 #[derive(Resource)]
-pub struct InstancedMaterialPipeline {
+pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
     pub combined_layout: BindGroupLayout,
+    pub _phantom: PhantomData<M>,
 }
 
-impl FromWorld for InstancedMaterialPipeline {
+impl<M: InstancedMaterial> InstancedMaterialPipeline<M> {
+    pub fn new(mesh_pipeline: MeshPipeline, combined_layout: BindGroupLayout) -> Self {
+        Self {
+            mesh_pipeline,
+            combined_layout,
+            shader: Default::default(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
     fn from_world(world: &mut World) -> Self {
         let mesh_pipeline = world.resource::<MeshPipeline>().clone();
         let render_device = world.resource::<RenderDevice>();
@@ -60,17 +72,16 @@ impl FromWorld for InstancedMaterialPipeline {
             ],
         );
 
-        InstancedMaterialPipeline {
+        InstancedMaterialPipeline::<M> {
             shader: asset_server.load(
                 AssetPath::from_path_buf(embedded_path!("render.wgsl")).with_source("embedded"),
             ),
-            mesh_pipeline,
-            combined_layout,
+            ..InstancedMaterialPipeline::<M>::new(mesh_pipeline, combined_layout)
         }
     }
 }
 
-impl SpecializedMeshPipeline for InstancedMaterialPipeline {
+impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline<M> {
     type Key = InstancedMaterialPipelineKey;
 
     fn specialize(

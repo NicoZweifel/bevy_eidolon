@@ -19,14 +19,14 @@ use example::*;
 
 fn main() -> AppExit {
     App::new()
-        .add_plugins((ExamplePlugin, InstancedMaterialPlugin))
+        .add_plugins((ExamplePlugin, InstancedMaterialPlugin::<StandardInstancedMaterial>::default()))
         .add_systems(Startup, setup)
         .run()
 }
 
 fn setup(
     mut cmd: Commands,
-    mut instanced_materials: ResMut<Assets<InstancedMaterial>>,
+    mut instanced_materials: ResMut<Assets<StandardInstancedMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let mesh_handle = meshes.add(Mesh::from(TriMesh));
@@ -36,7 +36,7 @@ fn setup(
         half_extents: Vec3A::new(0.25, 1.125, 0.0),
     };
 
-    let material_handle = instanced_materials.add(InstancedMaterial {
+    let material_handle = instanced_materials.add(StandardInstancedMaterial {
         debug: false,
         gpu_cull: false,
         debug_color: Default::default(),

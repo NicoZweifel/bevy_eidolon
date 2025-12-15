@@ -1,7 +1,7 @@
 use super::{
     components::{InstanceMaterialData, InstancePipelineKey},
     draw::DrawInstancedMaterial,
-    material::{InstancedMaterial, InstancedMeshMaterial},
+    material::{InstancedMeshMaterial},
     pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
 };
 use crate::pipeline::InstancedComputePipeline;
@@ -29,6 +29,7 @@ use bevy_render::{
 };
 use bevy_utils::default;
 
+use crate::material::InstancedMaterial;
 use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
 
@@ -44,11 +45,13 @@ bitflags! {
     }
 }
 
-pub(super) fn add_instance_key_component(
+pub(super) fn add_instance_key_component<M>(
     mut commands: Commands,
-    materials: Res<Assets<InstancedMaterial>>,
-    query: Query<(Entity, &InstancedMeshMaterial), Without<InstancePipelineKey>>,
-) {
+    materials: Res<Assets<M>>,
+    query: Query<(Entity, &InstancedMeshMaterial<M>), Without<InstancePipelineKey>>,
+) where
+    M: InstancedMaterial
+{
     for (entity, material_handle) in &query {
         let Some(material) = materials.get(&material_handle.0) else {
             continue;
@@ -58,15 +61,15 @@ pub(super) fn add_instance_key_component(
 
         key.set(
             InstancedMaterialKey::POINTS,
-            material.polygon_mode == PolygonMode::Point,
+            material.polygon_mode() == PolygonMode::Point,
         );
         key.set(
             InstancedMaterialKey::LINES,
-            material.polygon_mode == PolygonMode::Line,
+            material.polygon_mode() == PolygonMode::Line,
         );
-        key.set(InstancedMaterialKey::DEBUG, material.debug);
-        key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull);
-        key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided);
+        key.set(InstancedMaterialKey::DEBUG, material.debug());
+        key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull());
+        key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided());
 
         commands
             .entity(entity)
@@ -75,16 +78,16 @@ pub(super) fn add_instance_key_component(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn queue_instanced_material(
+pub(super) fn queue_instanced_material<M>(
     alpha_mask_3d_draw_functions: Res<DrawFunctions<AlphaMask3d>>,
-    custom_pipeline: Res<InstancedMaterialPipeline>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedMaterialPipeline>>,
+    custom_pipeline: Res<InstancedMaterialPipeline<M>>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
     material_meshes: Query<
         (Entity, &MainEntity, &InstancePipelineKey),
-        (With<InstanceMaterialData>, With<InstancedMeshMaterial>),
+        (With<InstanceMaterialData>, With<InstancedMeshMaterial<M>>),
     >,
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
@@ -97,10 +100,12 @@ pub(super) fn queue_instanced_material(
         Option<&NormalPrepass>,
         Option<&MotionVectorPrepass>,
     )>,
-) {
+) where
+    M: InstancedMaterial,
+{
     let draw_custom = alpha_mask_3d_draw_functions
         .read()
-        .id::<DrawInstancedMaterial>();
+        .id::<DrawInstancedMaterial<M>>();
 
     for (view, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in &views {
         let Some(alpha_mask_phase) = alpha_mask_render_phases.get_mut(&view.retained_view_entity)
