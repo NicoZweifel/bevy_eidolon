@@ -20,6 +20,7 @@ pub struct InstancedMaterial {
     pub gpu_cull: bool,
     pub debug_color: Color,
     pub polygon_mode: PolygonMode,
+    pub     double_sided: bool
 }
 
 #[repr(C)]

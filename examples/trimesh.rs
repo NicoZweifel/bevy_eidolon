@@ -50,6 +50,8 @@ fn setup(
         debug: false,
         gpu_cull: false,
         debug_color: Default::default(),
+        // Make the triangles double-sided so they can be seen from both sides.
+        double_sided: true,
         ..default()
     });
 

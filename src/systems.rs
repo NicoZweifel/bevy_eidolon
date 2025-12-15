@@ -34,6 +34,7 @@ bitflags! {
         const GPU_CULL = 1 << 2;
         const LINES = 1 << 3;
         const POINTS = 1 << 4;
+        const DOUBLE_SIDED = 1<< 5;
     }
 }
 
@@ -59,6 +60,7 @@ pub(crate) fn add_instance_key_component(
         );
         key.set(InstancedMaterialKey::DEBUG, material.debug);
         key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull);
+         key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided);
 
         commands
             .entity(entity)
