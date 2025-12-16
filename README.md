@@ -3,7 +3,7 @@
 > *"Reality is illusion"*
 
 This is a generic instanced material, mostly as a high-performance replacement for gizmos.
-I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `MaterialExtension` in bevy.
+I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `Material` and `MaterialExtension` in bevy.
 
 ## Who is this for? 
 
