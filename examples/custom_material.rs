@@ -22,7 +22,6 @@ use bevy_transform::prelude::Transform;
 
 use example::*;
 
-
 use std::sync::Arc;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
