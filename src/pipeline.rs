@@ -79,13 +79,6 @@ pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
-
-    /// The layout of the material's bindings only.
-    /// Used in `prepare_asset` to call `unprepared_bind_group`.
-    pub material_layout: BindGroupLayout,
-
-    /// The final layout including Material bindings + Instance Uniforms.
-    /// Used in the render pipeline.
     pub combined_layout: BindGroupLayout,
 
     pub _phantom: PhantomData<M>,
@@ -98,10 +91,6 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
         let asset_server = world.resource::<AssetServer>();
 
         let material_entries = M::bind_group_layout_entries(render_device, false);
-        let material_layout = render_device.create_bind_group_layout(
-            format!("instanced_material_layout_{}", std::any::type_name::<M>()).as_str(),
-            &material_entries,
-        );
 
         let mut combined_entries = material_entries.clone();
         if combined_entries
@@ -152,7 +141,6 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
             vertex_shader,
             fragment_shader,
             mesh_pipeline,
-            material_layout,
             combined_layout,
             _phantom: PhantomData,
         }

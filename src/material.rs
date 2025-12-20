@@ -218,7 +218,7 @@ impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
         _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match source_asset.unprepared_bind_group(
-            &pipeline.material_layout,
+            &pipeline.combined_layout,
             render_device,
             material_params,
             false,
