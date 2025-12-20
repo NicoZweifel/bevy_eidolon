@@ -59,5 +59,9 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_color = textureSample(base_color_texture, base_color_sampler, in.uv);
 
+#ifdef IS_RED
+    return vec4(1., 0., 0., 0.);
+#endif
+
     return material.color * tex_color * instance_uniforms.color;
 }

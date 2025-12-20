@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::resources::{CameraCullData, LodCullData};
-use crate::systems::InstancedMaterialKey;
+use std::fmt;
 
 use bevy_asset::*;
 use bevy_ecs::prelude::*;
@@ -8,17 +8,70 @@ use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout};
 use bevy_pbr::{MeshPipeline, MeshPipelineKey};
 use bevy_render::{render_resource::*, renderer::RenderDevice};
 use bevy_shader::{Shader, ShaderRef};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 use crate::prepare::INSTANCE_BINDING_INDEX;
 use std::mem::size_of;
 use std::num::NonZeroU64;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct InstancedMaterialPipelineKey {
+pub struct InstancedMaterialPipelineKey<M: InstancedMaterial> {
     pub mesh_key: MeshPipelineKey,
-    pub material_key: InstancedMaterialKey,
+    pub bind_group_data: M::Data,
+}
+
+impl<M> Clone for InstancedMaterialPipelineKey<M>
+where
+    M: InstancedMaterial,
+    M::Data: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            mesh_key: self.mesh_key,
+            bind_group_data: self.bind_group_data.clone(),
+        }
+    }
+}
+
+impl<M> PartialEq for InstancedMaterialPipelineKey<M>
+where
+    M: InstancedMaterial,
+    M::Data: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.mesh_key == other.mesh_key && self.bind_group_data == other.bind_group_data
+    }
+}
+
+impl<M> Eq for InstancedMaterialPipelineKey<M>
+where
+    M: InstancedMaterial,
+    M::Data: Eq,
+{
+}
+
+impl<M> Hash for InstancedMaterialPipelineKey<M>
+where
+    M: InstancedMaterial,
+    M::Data: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.mesh_key.hash(state);
+        self.bind_group_data.hash(state);
+    }
+}
+
+impl<M> fmt::Debug for InstancedMaterialPipelineKey<M>
+where
+    M: InstancedMaterial,
+    M::Data: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InstancedMaterialPipelineKey")
+            .field("mesh_key", &self.mesh_key)
+            .field("bind_group_data", &self.bind_group_data)
+            .finish()
+    }
 }
 
 #[derive(Resource)]
@@ -106,8 +159,12 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
     }
 }
 
-impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline<M> {
-    type Key = InstancedMaterialPipelineKey;
+impl<M> SpecializedMeshPipeline for InstancedMaterialPipeline<M>
+where
+    M: InstancedMaterial,
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
+    type Key = InstancedMaterialPipelineKey<M>;
 
     fn specialize(
         &self,
@@ -139,11 +196,9 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
             }
 
             fragment.shader_defs.push("VISIBILITY_RANGE_DITHER".into());
-
-            if key.material_key.contains(InstancedMaterialKey::DEBUG) {
-                fragment.shader_defs.push("MATERIAL_DEBUG".into());
-            }
         }
+
+        M::specialize(&mut descriptor, layout, key.bind_group_data)?;
 
         descriptor.vertex.shader = self.vertex_shader.clone();
         descriptor.fragment.as_mut().unwrap().shader = self.fragment_shader.clone();
@@ -172,19 +227,6 @@ impl<M: InstancedMaterial> SpecializedMeshPipeline for InstancedMaterialPipeline
                 },
             ],
         });
-
-        if key.material_key.contains(InstancedMaterialKey::POINTS) {
-            descriptor.primitive.polygon_mode = PolygonMode::Point;
-        }
-        if key.material_key.contains(InstancedMaterialKey::LINES) {
-            descriptor.primitive.polygon_mode = PolygonMode::Line;
-        }
-        if key
-            .material_key
-            .contains(InstancedMaterialKey::DOUBLE_SIDED)
-        {
-            descriptor.primitive.cull_mode = None;
-        }
 
         Ok(descriptor)
     }

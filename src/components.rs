@@ -11,7 +11,10 @@ use bevy_utils::default;
 
 use bytemuck::{Pod, Zeroable};
 
+use crate::prelude::InstancedMaterial;
+
 use std::fmt;
+use std::hash::Hash;
 use std::sync::Arc;
 
 /// Marker component to opt in to GPU-driven culling/preparation.
@@ -24,19 +27,6 @@ pub struct GpuCull;
 #[derive(Component, Clone, Copy, Debug, Reflect, Default)]
 #[reflect(Component, Clone, Debug)]
 pub struct InstanceColor(pub Color);
-
-#[derive(Component, Clone, Copy, Deref, DerefMut)]
-pub(crate) struct InstancePipelineKey(pub u64);
-
-impl ExtractComponent for InstancePipelineKey {
-    type QueryData = &'static InstancePipelineKey;
-    type QueryFilter = ();
-    type Out = Self;
-
-    fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
-        Some(*item)
-    }
-}
 
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 #[repr(C)]
@@ -128,3 +118,20 @@ pub struct InstancedComputeSourceBuffer {
 
 #[derive(Component)]
 pub struct InstancedComputeBindGroup(pub BindGroup);
+
+#[derive(Component, Clone, Deref, DerefMut)]
+pub struct MaterialBindGroupData<M: InstancedMaterial>(pub M::Data);
+
+impl<M> ExtractComponent for MaterialBindGroupData<M>
+where
+    M: InstancedMaterial,
+    M::Data: PartialEq + Eq + Hash + Clone + Send + Sync + 'static,
+{
+    type QueryData = &'static MaterialBindGroupData<M>;
+    type QueryFilter = ();
+    type Out = Self;
+
+    fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
+        Some(item.clone())
+    }
+}

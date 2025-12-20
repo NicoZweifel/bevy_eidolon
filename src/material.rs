@@ -1,5 +1,5 @@
-use bevy_render::batching::NoAutomaticBatching;
 use crate::pipeline::InstancedMaterialPipeline;
+
 use bevy_asset::{Asset, AssetId, Handle};
 use bevy_color::{Color, ColorToComponents};
 use bevy_ecs::{
@@ -9,10 +9,10 @@ use bevy_ecs::{
 };
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
-use bevy_pbr::MeshPipelineKey;
 use bevy_reflect::TypePath;
-use bevy_render::render_resource::AsBindGroupError;
 use bevy_render::{
+    batching::NoAutomaticBatching,
+    render_resource::AsBindGroupError,
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
         extract_component::ExtractComponent,
@@ -22,10 +22,14 @@ use bevy_render::{
     },
 };
 use bevy_shader::ShaderRef;
+use bitflags::bitflags;
 use bytemuck::{Pod, Zeroable};
+
+use std::fmt::Debug;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
-pub trait InstancedMaterial: Asset + AsBindGroup + TypePath + Clone + Sized + Send + Sync {
+pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync + 'static {
     /// The vertex shader.
     fn vertex_shader() -> ShaderRef {
         ShaderRef::Default
@@ -34,16 +38,6 @@ pub trait InstancedMaterial: Asset + AsBindGroup + TypePath + Clone + Sized + Se
     /// The fragment shader.
     fn fragment_shader() -> ShaderRef {
         ShaderRef::Default
-    }
-
-    /// Allow specializing the pipeline (e.g. enabling shader defs based on material settings).
-    fn specialize(
-        &self,
-        _descriptor: &mut RenderPipelineDescriptor,
-        _layout: &MeshVertexBufferLayoutRef,
-        _key: MeshPipelineKey,
-    ) -> Result<(), SpecializedMeshPipelineError> {
-        Ok(())
     }
 
     fn polygon_mode(&self) -> PolygonMode {
@@ -65,16 +59,51 @@ pub trait InstancedMaterial: Asset + AsBindGroup + TypePath + Clone + Sized + Se
     fn gpu_cull(&self) -> bool {
         false
     }
+
+    /// Allow specializing the pipeline (e.g. enabling shader defs based on material settings).
+    fn specialize(
+        _descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        _key: Self::Data,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        Ok(())
+    }
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]
 #[uniform(0, InstancedMaterialUniforms)]
+#[bind_group_data(InstancedMaterialKey)]
 pub struct StandardInstancedMaterial {
     pub debug: bool,
     pub gpu_cull: bool,
     pub debug_color: Color,
     pub polygon_mode: PolygonMode,
     pub double_sided: bool,
+}
+
+impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
+    fn from(material: &StandardInstancedMaterial) -> Self {
+        let mut key = InstancedMaterialKey::empty();
+        if material.debug {
+            key.insert(InstancedMaterialKey::DEBUG);
+        }
+
+        if material.gpu_cull {
+            key.insert(InstancedMaterialKey::GPU_CULL);
+        }
+
+        if material.double_sided {
+            key.insert(InstancedMaterialKey::DOUBLE_SIDED);
+        }
+
+        match material.polygon_mode {
+            PolygonMode::Point => key.insert(InstancedMaterialKey::POINTS),
+            PolygonMode::Line => key.insert(InstancedMaterialKey::LINES),
+            _ => {}
+        }
+
+        key
+    }
 }
 
 impl InstancedMaterial for StandardInstancedMaterial {
@@ -95,6 +124,38 @@ impl InstancedMaterial for StandardInstancedMaterial {
 
     fn gpu_cull(&self) -> bool {
         self.gpu_cull
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        key: Self::Data,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        if key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
+            descriptor.primitive.cull_mode = None;
+        }
+
+        if key.contains(InstancedMaterialKey::GPU_CULL) {
+            // TODO
+        }
+
+        if key.contains(InstancedMaterialKey::POINTS) {
+            descriptor.primitive.polygon_mode = PolygonMode::Point;
+        }
+        if key.contains(InstancedMaterialKey::LINES) {
+            descriptor.primitive.polygon_mode = PolygonMode::Line;
+        }
+        if key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
+            descriptor.primitive.cull_mode = None;
+        }
+
+        if key.contains(InstancedMaterialKey::DEBUG) {
+            if let Some(fragment) = descriptor.fragment.as_mut() {
+                fragment.shader_defs.push("MATERIAL_DEBUG".into());
+            };
+        }
+
+        Ok(())
     }
 }
 
@@ -126,15 +187,17 @@ impl<M: InstancedMaterial> ExtractComponent for InstancedMeshMaterial<M> {
     }
 }
 
-pub struct PreparedInstancedMaterial<M> {
+pub struct PreparedInstancedMaterial<M: InstancedMaterial> {
     pub bindings: Vec<(u32, OwnedBindingResource)>,
+    pub key: M::Data,
     _phantom: PhantomData<M>,
 }
 
-impl<M> PreparedInstancedMaterial<M> {
-    pub fn new(bindings: Vec<(u32, OwnedBindingResource)>) -> Self {
+impl<M: InstancedMaterial> PreparedInstancedMaterial<M> {
+    pub fn new(bindings: Vec<(u32, OwnedBindingResource)>, key: M::Data) -> Self {
         Self {
             bindings,
+            key,
             _phantom: PhantomData,
         }
     }
@@ -161,6 +224,7 @@ impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
             false,
         ) {
             Ok(unprepared) => Ok(PreparedInstancedMaterial {
+                key: source_asset.bind_group_data(),
                 bindings: unprepared.bindings.0,
                 _phantom: PhantomData,
             }),
@@ -175,5 +239,17 @@ impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
 impl<'a> From<&'a StandardInstancedMaterial> for InstancedMaterialUniforms {
     fn from(material: &'a StandardInstancedMaterial) -> Self {
         InstancedMaterialUniforms::new(material.debug_color.to_linear().to_vec4())
+    }
+}
+
+bitflags! {
+    #[repr(C)]
+    #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Pod, Zeroable)]
+    pub struct InstancedMaterialKey: u64 {
+        const DEBUG = 1 << 0;
+        const GPU_CULL = 1 << 2;
+        const LINES = 1 << 3;
+        const POINTS = 1 << 4;
+        const DOUBLE_SIDED = 1<< 5;
     }
 }

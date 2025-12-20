@@ -7,6 +7,7 @@ use super::{
     systems::*,
 };
 use crate::prelude::*;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 use bevy_app::{App, Plugin, PostUpdate};
@@ -36,7 +37,6 @@ impl Plugin for InstancedMaterialCorePlugin {
         app.add_plugins((
             ExtractComponentPlugin::<InstanceMaterialData>::default(),
             ExtractComponentPlugin::<GpuCull>::default(),
-            ExtractComponentPlugin::<InstancePipelineKey>::default(),
         ));
 
         let render_app = app.sub_app_mut(RenderApp);
@@ -76,15 +76,18 @@ impl<M: InstancedMaterial> Default for InstancedMaterialPlugin<M> {
     }
 }
 
-impl<M: InstancedMaterial> Plugin for InstancedMaterialPlugin<M> {
+impl<M> Plugin for InstancedMaterialPlugin<M>
+where
+    M: InstancedMaterial,
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
     fn build(&self, app: &mut App) {
         app.init_asset::<M>();
 
         app.add_plugins((
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
-        ))
-        .add_systems(PostUpdate, add_instance_key_component::<M>);
+        ));
 
         let render_app = app.sub_app_mut(RenderApp);
 
@@ -94,7 +97,6 @@ impl<M: InstancedMaterial> Plugin for InstancedMaterialPlugin<M> {
             .add_systems(
                 Render,
                 (
-                    // Generic: Queues draw commands for this specific M
                     queue_instanced_material::<M>.in_set(RenderSystems::QueueMeshes),
                     prepare_instanced_bind_group::<M>.in_set(RenderSystems::PrepareResources),
                 ),

@@ -1,11 +1,10 @@
 use super::{
-    components::{InstanceMaterialData, InstancePipelineKey},
+    components::InstanceMaterialData,
     draw::DrawInstancedMaterial,
     material::InstancedMeshMaterial,
     pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
 };
 use crate::pipeline::InstancedComputePipeline;
-use bevy_asset::Assets;
 use bevy_core_pipeline::{
     core_3d::AlphaMask3d,
     prepass::{
@@ -28,54 +27,10 @@ use bevy_render::{
     view::Msaa,
 };
 use bevy_utils::default;
+use std::hash::Hash;
 
 use crate::material::InstancedMaterial;
-use bitflags::bitflags;
-use bytemuck::{Pod, Zeroable};
-
-bitflags! {
-    #[repr(C)]
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, Pod, Zeroable)]
-    pub struct InstancedMaterialKey: u64 {
-        const DEBUG = 1 << 0;
-        const GPU_CULL = 1 << 2;
-        const LINES = 1 << 3;
-        const POINTS = 1 << 4;
-        const DOUBLE_SIDED = 1<< 5;
-    }
-}
-
-pub(super) fn add_instance_key_component<M>(
-    mut commands: Commands,
-    materials: Res<Assets<M>>,
-    query: Query<(Entity, &InstancedMeshMaterial<M>), Without<InstancePipelineKey>>,
-) where
-    M: InstancedMaterial,
-{
-    for (entity, material_handle) in &query {
-        let Some(material) = materials.get(&material_handle.0) else {
-            continue;
-        };
-
-        let mut key = InstancedMaterialKey::empty();
-
-        key.set(
-            InstancedMaterialKey::POINTS,
-            material.polygon_mode() == PolygonMode::Point,
-        );
-        key.set(
-            InstancedMaterialKey::LINES,
-            material.polygon_mode() == PolygonMode::Line,
-        );
-        key.set(InstancedMaterialKey::DEBUG, material.debug());
-        key.set(InstancedMaterialKey::GPU_CULL, material.gpu_cull());
-        key.set(InstancedMaterialKey::DOUBLE_SIDED, material.double_sided());
-
-        commands
-            .entity(entity)
-            .insert(InstancePipelineKey(key.bits()));
-    }
-}
+use crate::prelude::PreparedInstancedMaterial;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn queue_instanced_material<M>(
@@ -85,9 +40,10 @@ pub(super) fn queue_instanced_material<M>(
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
+    render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
     material_meshes: Query<
-        (Entity, &MainEntity, &InstancePipelineKey),
-        (With<InstanceMaterialData>, With<InstancedMeshMaterial<M>>),
+        (Entity, &MainEntity, &InstancedMeshMaterial<M>),
+        With<InstanceMaterialData>,
     >,
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
@@ -102,6 +58,7 @@ pub(super) fn queue_instanced_material<M>(
     )>,
 ) where
     M: InstancedMaterial,
+    M::Data: PartialEq + Eq + Hash + Clone,
 {
     let draw_custom = alpha_mask_3d_draw_functions
         .read()
@@ -126,19 +83,21 @@ pub(super) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, main_entity, instance_key) in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
-            else {
+        for (entity, e_main, h_material) in &material_meshes {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*e_main) else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+                continue;
+            };
+            let Some(prepared_material) = render_materials.get(&h_material.0) else {
                 continue;
             };
 
             let mut key = InstancedMaterialPipelineKey {
                 mesh_key: view_key
                     | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
-                material_key: InstancedMaterialKey::from_bits(instance_key.0).unwrap(),
+                bind_group_data: prepared_material.key.clone(),
             };
 
             key.mesh_key |= MeshPipelineKey::MAY_DISCARD;
@@ -160,7 +119,7 @@ pub(super) fn queue_instanced_material<M>(
                 OpaqueNoLightmap3dBinKey {
                     asset_id: mesh_instance.mesh_asset_id.into(),
                 },
-                (entity, *main_entity),
+                (entity, *e_main),
                 mesh_instance.current_uniform_index,
                 BinnedRenderPhaseType::mesh(
                     mesh_instance.should_batch(),
