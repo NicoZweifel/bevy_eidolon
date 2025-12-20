@@ -12,9 +12,8 @@ use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy_render::render_resource::PolygonMode;
 use bevy_utils::default;
 
-use std::sync::Arc;
-
 use example::*;
+use std::sync::Arc;
 
 fn main() -> AppExit {
     App::new()
@@ -75,8 +74,6 @@ fn setup(
         InstancedMeshMaterial(material_handle),
         Mesh3d(mesh_handle),
         instance_material_data,
-        // NOTE:
-        // for testing, to remove rotation, pass the same index (e.g., 0) for all items here.
         Aabb {
             center: aabb.center,
             half_extents: aabb.half_extents * SIZE as f32 * 2.,

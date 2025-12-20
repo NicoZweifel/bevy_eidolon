@@ -1,7 +1,7 @@
 use bevy_color::{Color, LinearRgba};
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, query::QueryItem};
-use bevy_math::{Vec3, Vec4};
+use bevy_math::{Mat4, Vec3, Vec4};
 use bevy_reflect::Reflect;
 use bevy_render::{
     extract_component::ExtractComponent,
@@ -13,6 +13,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::prelude::InstancedMaterial;
 
+use bevy_transform::prelude::GlobalTransform;
 use std::fmt;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -59,12 +60,14 @@ impl fmt::Debug for InstanceMaterialData {
 }
 
 impl ExtractComponent for InstanceMaterialData {
-    type QueryData = &'static InstanceMaterialData;
+    type QueryData = (&'static Self, &'static GlobalTransform);
     type QueryFilter = ();
-    type Out = Self;
+    type Out = (Self, GlobalTransform);
 
-    fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
-        Some(item.clone())
+    fn extract_component(
+        (data, transform): QueryItem<'_, '_, Self::QueryData>,
+    ) -> Option<Self::Out> {
+        Some((data.clone(), *transform))
     }
 }
 
@@ -90,6 +93,7 @@ pub struct InstanceLodBuffer {
 pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
+    pub world_from_local: Mat4,
 }
 
 impl From<&InstanceMaterialData> for InstanceUniforms {

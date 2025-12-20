@@ -18,7 +18,7 @@ use bevy_render::{
     sync_world::MainEntity,
     view::ExtractedView,
 };
-
+use bevy_transform::components::GlobalTransform;
 use bytemuck::bytes_of;
 
 #[cfg(feature = "trace")]
@@ -79,6 +79,7 @@ pub(super) fn prepare_instanced_bind_group<M>(
         Entity,
         &InstancedMeshMaterial<M>,
         &InstanceMaterialData,
+        &GlobalTransform,
         Option<&InstanceUniformBuffer>,
     )>,
     render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
@@ -88,12 +89,15 @@ pub(super) fn prepare_instanced_bind_group<M>(
 ) where
     M: InstancedMaterial,
 {
-    for (entity, material_handle, instance_data, uniform_buffer) in &query {
+    for (entity, material_handle, instance_data, gtf, uniform_buffer) in &query {
         let Some(prepared_material) = render_materials.get(&material_handle.0) else {
             continue;
         };
 
-        let uniforms: InstanceUniforms = instance_data.into();
+        let uniforms = InstanceUniforms {
+            world_from_local: gtf.to_matrix(),
+            ..instance_data.into()
+        };
         let contents = bytes_of(&uniforms);
 
         let buffer = if let Some(instance_uniform_buffer) = uniform_buffer {
@@ -255,6 +259,7 @@ pub(super) fn prepare_instanced_material_compute_resources(
             Entity,
             &MainEntity,
             &InstanceMaterialData,
+            &GlobalTransform,
             Option<&InstancedComputeSourceBuffer>,
             Option<&GpuDrawIndexedIndirect>,
         ),
@@ -267,7 +272,7 @@ pub(super) fn prepare_instanced_material_compute_resources(
     mesh_allocator: Res<MeshAllocator>,
     pipeline: Res<InstancedComputePipeline>,
 ) {
-    for (entity, main_entity, instance_data, existing_source, existing_indirect) in &query {
+    for (entity, main_entity, instance_data, gtf, existing_source, existing_indirect) in &query {
         let count = instance_data.instances.len();
         if count == 0 {
             continue;
@@ -320,6 +325,7 @@ pub(super) fn prepare_instanced_material_compute_resources(
 
         let lod_data = LodCullData {
             visibility_range: instance_data.visibility_range,
+            world_from_local: gtf.to_matrix(),
         };
 
         let contents = bytes_of(&lod_data);

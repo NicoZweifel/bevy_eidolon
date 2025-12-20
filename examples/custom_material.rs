@@ -16,12 +16,13 @@ use bevy_render::render_resource::{
 };
 use bevy_utils::default;
 
-use bevy::prelude::Image;
+use bevy::prelude::{Image, Quat};
 use bevy_shader::ShaderRef;
 use bevy_transform::prelude::Transform;
 
 use example::*;
 
+use bevy_camera::prelude::Visibility;
 use std::sync::Arc;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
@@ -146,28 +147,32 @@ fn setup(
         visibility_range: [0.0, 0.0, 1000.0, 1000.0].into(),
     };
 
-    let tf = Transform::default();
-
-    cmd.spawn((
-        tf.clone(),
-        InstancedMeshMaterial(material_handle),
-        Mesh3d(mesh_handle.clone()),
-        instance_material_data,
-        Aabb {
-            center: Vec3A::ZERO,
-            half_extents: Vec3A::splat(SIZE as f32 * SPACING),
-        },
-    ));
+    let tf = Transform::from_xyz(20.0, 0.0, 20.0)
+        .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4));
 
     cmd.spawn((
         tf,
-        InstancedMeshMaterial(red_material_handle),
-        Mesh3d(mesh_handle),
-        red_instance_material_data,
-        Aabb {
-            center: Vec3A::ZERO,
-            half_extents: Vec3A::splat(SIZE as f32 * SPACING),
-        },
+        Visibility::Visible,
+        children![
+            (
+                InstancedMeshMaterial(material_handle),
+                Mesh3d(mesh_handle.clone()),
+                instance_material_data,
+                Aabb {
+                    center: Vec3A::ZERO,
+                    half_extents: Vec3A::splat(SIZE as f32 * SPACING),
+                }
+            ),
+            (
+                InstancedMeshMaterial(red_material_handle),
+                Mesh3d(mesh_handle),
+                red_instance_material_data,
+                Aabb {
+                    center: Vec3A::ZERO,
+                    half_extents: Vec3A::splat(SIZE as f32 * SPACING),
+                },
+            )
+        ],
     ));
 }
 

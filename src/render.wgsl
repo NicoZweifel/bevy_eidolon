@@ -15,6 +15,7 @@ struct MaterialUniforms {
 struct InstanceUniforms {
     color: vec4<f32>,
     visibility_range: vec4<f32>,
+    world_from_local: mat4x4<f32>,
 };
 
 @group(3) @binding(0) var<uniform> material: MaterialUniforms;
@@ -70,33 +71,15 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var scale = vertex.i_pos_scale.w;
     var translation = vertex.i_pos_scale.xyz;
 
-    let angle = vertex.i_rotation;
+    let final_matrix = calculate_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
 
-    let c = cos(angle);
-    let s = sin(angle);
+    let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
 
-    let rot_y_matrix = mat3x3<f32>(
-        vec3<f32>(c, 0.0, s),
-        vec3<f32>(0.0, 1.0, 0.0),
-        vec3<f32>(-s, 0.0, c)
-    );
-
-    let rot_scale_matrix = rot_y_matrix * scale;
-
-    let world_from_local = mat4x4<f32>(
-        vec4<f32>(rot_scale_matrix[0], 0.0),
-        vec4<f32>(rot_scale_matrix[1], 0.0),
-        vec4<f32>(rot_scale_matrix[2], 0.0),
-        vec4<f32>(translation, 1.0)
-    );
-
-    let world_position = world_from_local * vec4<f32>(vertex.position, 1.0);
-
-    out.clip_position = view.clip_from_world * world_position;
     out.world_position = world_position.xyz;
+    out.clip_position = view.clip_from_world * world_position;
 
 #ifdef VERTEX_NORMALS
-    out.world_normal = normalize(rot_scale_matrix * vertex.normal);
+    out.world_normal = normalize((final_matrix * vec4<f32>(vertex.normal, 0.0)).xyz);
 #else
     out.world_normal = vec3<f32>(0.0, 1.0, 0.0);
 #endif
@@ -110,11 +93,32 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = get_visibility_range_dither_level(
         instance_uniforms.visibility_range,
-        vec4<f32>(translation, 1.0)
+        final_matrix[3]
     );
 #endif
 
     return out;
+}
+
+fn calculate_instance_world_matrix(
+    i_pos_scale: vec4<f32>,
+    i_rotation: f32,
+    parent_transform: mat4x4<f32>
+) -> mat4x4<f32> {
+    let scale = i_pos_scale.w;
+    let translation = i_pos_scale.xyz;
+
+    let c = cos(i_rotation) * scale;
+    let s = sin(i_rotation) * scale;
+
+    let instance_local = mat4x4<f32>(
+        vec4<f32>(c, 0.0, s, 0.0),
+        vec4<f32>(0.0, scale, 0.0, 0.0),
+        vec4<f32>(-s, 0.0, c, 0.0),
+        vec4<f32>(translation, 1.0)
+    );
+
+    return parent_transform * instance_local;
 }
 
 #ifdef VISIBILITY_RANGE_DITHER

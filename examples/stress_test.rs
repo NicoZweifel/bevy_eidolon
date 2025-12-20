@@ -7,14 +7,14 @@ use bevy_camera::primitives::Aabb;
 use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
 use bevy_eidolon::prelude::*;
-use bevy_math::{Vec3, Vec3A};
+use bevy_math::{Quat, Vec3, Vec3A};
 use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy_render::render_resource::PolygonMode;
 use bevy_utils::default;
 
-use std::sync::Arc;
-
+use bevy_transform::prelude::Transform;
 use example::*;
+use std::sync::Arc;
 
 fn main() -> AppExit {
     App::new()
@@ -79,6 +79,8 @@ fn setup(
     };
 
     cmd.spawn((
+        Transform::from_xyz(20.0, 0.0, 20.0)
+            .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
         InstancedMeshMaterial(material_handle),
         Mesh3d(mesh_handle),
         instance_material_data,
