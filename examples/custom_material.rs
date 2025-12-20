@@ -18,8 +18,10 @@ use bevy_utils::default;
 
 use bevy::prelude::Image;
 use bevy_shader::ShaderRef;
+use bevy_transform::prelude::Transform;
 
 use example::*;
+
 
 use std::sync::Arc;
 
@@ -111,7 +113,7 @@ fn setup(
 
     let instances: Vec<InstanceData> = (-SIZE..SIZE)
         .enumerate()
-        .flat_map(|(i,x)| {
+        .flat_map(|(i, x)| {
             (-SIZE..SIZE).map(move |z| InstanceData {
                 position: Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
                 scale: 1.0,
@@ -121,14 +123,17 @@ fn setup(
         })
         .collect();
 
-    let (instances, red_instances) = instances.iter().fold((Vec::new(), Vec::new()), |(mut data, mut red_data), instance| {
-        if instance.index % 2 == 0 {
-            data.push(instance.clone());
-        } else {
-            red_data.push(instance.clone());
-        }
-        (data, red_data)
-    });
+    let (instances, red_instances) = instances.iter().fold(
+        (Vec::new(), Vec::new()),
+        |(mut data, mut red_data), instance| {
+            if instance.index % 2 == 0 {
+                data.push(instance.clone());
+            } else {
+                red_data.push(instance.clone());
+            }
+            (data, red_data)
+        },
+    );
 
     let instance_material_data = InstanceMaterialData {
         instances: Arc::new(instances),
@@ -136,14 +141,16 @@ fn setup(
         visibility_range: [0.0, 0.0, 1000.0, 1000.0].into(),
     };
 
-
     let red_instance_material_data = InstanceMaterialData {
         instances: Arc::new(red_instances),
         color: Color::WHITE.into(),
         visibility_range: [0.0, 0.0, 1000.0, 1000.0].into(),
     };
 
+    let tf = Transform::default();
+
     cmd.spawn((
+        tf.clone(),
         InstancedMeshMaterial(material_handle),
         Mesh3d(mesh_handle.clone()),
         instance_material_data,
@@ -154,6 +161,7 @@ fn setup(
     ));
 
     cmd.spawn((
+        tf,
         InstancedMeshMaterial(red_material_handle),
         Mesh3d(mesh_handle),
         red_instance_material_data,

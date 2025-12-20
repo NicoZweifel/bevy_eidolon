@@ -10,7 +10,7 @@ use crate::prelude::*;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use bevy_app::{App, Plugin, PostUpdate};
+use bevy_app::{App, Plugin};
 use bevy_asset::{AssetApp, embedded_asset};
 use bevy_core_pipeline::core_3d::AlphaMask3d;
 use bevy_ecs::prelude::*;

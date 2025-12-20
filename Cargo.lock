@@ -810,6 +810,7 @@ dependencies = [
  "bevy_reflect",
  "bevy_render",
  "bevy_shader",
+ "bevy_transform",
  "bevy_utils",
  "bitflags 2.10.0",
  "bytemuck",
