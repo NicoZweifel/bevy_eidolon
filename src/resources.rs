@@ -5,18 +5,19 @@ use bytemuck::{Pod, Zeroable};
 
 #[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]
 #[repr(C)]
-pub(super) struct CameraCullData {
+pub struct CameraCullData {
     pub view_pos: Vec4,
 }
 
 #[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]
 #[repr(C)]
-pub(super) struct LodCullData {
+pub struct LodCullData {
     pub visibility_range: Vec4,
+    pub world_from_local: Mat4,
 }
 
 #[derive(Resource)]
-pub(super) struct GlobalCullBuffer {
+pub struct GlobalCullBuffer {
     pub buffer: Buffer,
     pub bind_group: BindGroup,
 }

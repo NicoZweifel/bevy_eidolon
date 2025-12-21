@@ -1,7 +1,3 @@
-use crate::pipeline::{InstancedComputePipeline, InstancedMaterialPipeline};
-use crate::prelude::*;
-use crate::resources::{CameraCullData, GlobalCullBuffer, LodCullData};
-
 use bevy_camera::Camera;
 use bevy_ecs::prelude::*;
 use bevy_math::Vec4;
@@ -19,179 +15,16 @@ use bevy_render::{
     view::ExtractedView,
 };
 
-use bytemuck::bytes_of;
+use bevy_transform::components::GlobalTransform;
 
-#[cfg(feature = "trace")]
+use bytemuck::bytes_of;
 use tracing::warn;
 
-pub(super) fn prepare_instance_buffer(
-    mut cmd: Commands,
-    query: Query<(Entity, &InstanceMaterialData, Option<&InstanceBuffer>), Without<GpuCull>>,
-    render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
-) {
-    for (entity, instance_data, instance_buffer) in &query {
-        let instance_vec = &instance_data.instances;
+use crate::cull::pipeline::InstancedComputePipeline;
+use crate::prelude::*;
+use crate::resources::{CameraCullData, GlobalCullBuffer, LodCullData};
 
-        let Some(instance_buffer) = instance_buffer else {
-            create_buffer(&mut cmd, entity, instance_vec, &render_device);
-            continue;
-        };
-
-        if instance_vec.len() != instance_buffer.length {
-            create_buffer(&mut cmd, entity, instance_vec, &render_device);
-            continue;
-        }
-
-        render_queue.write_buffer(
-            &instance_buffer.buffer,
-            0,
-            bytemuck::cast_slice(instance_vec.as_slice()),
-        );
-    }
-}
-
-fn create_buffer(
-    cmd: &mut Commands,
-    entity: Entity,
-    instance_vec: &Vec<InstanceData>,
-    render_device: &Res<RenderDevice>,
-) {
-    let contents = bytemuck::cast_slice(instance_vec.as_slice());
-
-    let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: Some("instanced_material_data_buffer"),
-        contents,
-        usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-    });
-
-    cmd.entity(entity).insert(InstanceBuffer {
-        buffer,
-        length: instance_vec.len(),
-    });
-}
-
-pub(super) fn prepare_instanced_bind_group(
-    mut commands: Commands,
-    query: Query<(
-        Entity,
-        &InstancedMeshMaterial,
-        &InstanceMaterialData,
-        Option<&InstanceUniformBuffer>,
-    )>,
-    render_materials: Res<RenderAssets<PreparedInstancedMaterial>>,
-    render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
-    pipeline: Res<InstancedMaterialPipeline>,
-) {
-    for (entity, material_handle, instance_data, uniform_buffer) in &query {
-        let Some(prepared_material) = render_materials.get(&material_handle.0) else {
-            continue;
-        };
-
-        let uniforms: InstanceUniforms = instance_data.into();
-        let contents = bytes_of(&uniforms);
-
-        let buffer = if let Some(instance_uniform_buffer) = uniform_buffer {
-            render_queue.write_buffer(&instance_uniform_buffer.buffer, 0, contents);
-            instance_uniform_buffer.buffer.clone()
-        } else {
-            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                label: Some("instanced_material_uniform_buffer"),
-                contents,
-                usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            });
-
-            commands.entity(entity).insert(InstanceUniformBuffer {
-                buffer: buffer.clone(),
-            });
-
-            buffer
-        };
-
-        let bind_group = render_device.create_bind_group(
-            "instanced_material_combined_bind_group",
-            &pipeline.combined_layout,
-            &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: prepared_material.buffer.as_entire_binding(),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: buffer.as_entire_binding(),
-                },
-            ],
-        );
-
-        commands
-            .entity(entity)
-            .insert(InstancedCombinedBindGroup(bind_group));
-    }
-}
-
-pub(super) fn prepare_indirect_draw_buffer(
-    mut cmd: Commands,
-    query: Query<
-        (
-            Entity,
-            &MainEntity,
-            &InstanceBuffer,
-            Option<&GpuDrawIndexedIndirect>,
-        ),
-        (With<InstancedMeshMaterial>, Without<GpuCull>),
-    >,
-    render_mesh_instances: Res<RenderMeshInstances>,
-    meshes: Res<RenderAssets<RenderMesh>>,
-    mesh_allocator: Res<MeshAllocator>,
-    render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
-) {
-    for (entity, main_entity, instance_buffer, indirect_buffer_opt) in &query {
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
-            continue;
-        };
-        let mesh_asset_id = mesh_instance.mesh_asset_id;
-
-        let Some(gpu_mesh) = meshes.get(mesh_asset_id) else {
-            continue;
-        };
-        let Some(vertex_buffer_slice) = mesh_allocator.mesh_vertex_slice(&mesh_asset_id) else {
-            continue;
-        };
-
-        if let RenderMeshBufferInfo::Indexed { count, .. } = gpu_mesh.buffer_info {
-            let Some(index_buffer_slice) = mesh_allocator.mesh_index_slice(&mesh_asset_id) else {
-                continue;
-            };
-
-            let command = DrawIndexedIndirectArgs {
-                index_count: count,
-                instance_count: instance_buffer.length as u32,
-                first_index: index_buffer_slice.range.start,
-                base_vertex: vertex_buffer_slice.range.start as i32,
-                first_instance: 0,
-            };
-
-            let contents = command.as_bytes();
-
-            if let Some(indirect_buffer) = indirect_buffer_opt {
-                render_queue.write_buffer(&indirect_buffer.buffer, 0, contents);
-            } else {
-                let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                    label: Some("draw_indexed_indirect buffer"),
-                    contents,
-                    usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-                });
-
-                cmd.entity(entity)
-                    .insert(GpuDrawIndexedIndirect { buffer, offset: 0 });
-            }
-        }
-    }
-}
-
-pub(super) fn prepare_global_cull_buffer(
+pub fn prepare_global_cull_buffer(
     mut commands: Commands,
     views: Query<(&ExtractedView, &Camera)>,
     render_device: Res<RenderDevice>,
@@ -239,17 +72,18 @@ pub(super) fn prepare_global_cull_buffer(
     }
 }
 
-pub(super) fn prepare_instanced_material_compute_resources(
+pub fn prepare_instanced_material_compute_resources(
     mut commands: Commands,
     query: Query<
         (
             Entity,
             &MainEntity,
             &InstanceMaterialData,
+            &GlobalTransform,
             Option<&InstancedComputeSourceBuffer>,
             Option<&GpuDrawIndexedIndirect>,
         ),
-        With<GpuCull>,
+        With<GpuCullCompute>,
     >,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
@@ -258,7 +92,7 @@ pub(super) fn prepare_instanced_material_compute_resources(
     mesh_allocator: Res<MeshAllocator>,
     pipeline: Res<InstancedComputePipeline>,
 ) {
-    for (entity, main_entity, instance_data, existing_source, existing_indirect) in &query {
+    for (entity, main_entity, instance_data, gtf, existing_source, existing_indirect) in &query {
         let count = instance_data.instances.len();
         if count == 0 {
             continue;
@@ -311,6 +145,7 @@ pub(super) fn prepare_instanced_material_compute_resources(
 
         let lod_data = LodCullData {
             visibility_range: instance_data.visibility_range,
+            world_from_local: gtf.to_matrix(),
         };
 
         let contents = bytes_of(&lod_data);

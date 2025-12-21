@@ -1,6 +1,6 @@
 [package]
 name = "bevy_eidolon"
-version = "0.0.2"
+version = "0.1.0"
 edition = "2024"
 description = "Generic instanced material for the bevy game engine."
 license = "MIT OR Apache-2.0"
@@ -39,6 +39,7 @@ bevy = { version = "0.17", features = [
     "asset_processor",
     "basis-universal",
 ]}
+rand = "0.9.2"
 
 iyes_perf_ui = "0.5.0"
 # Set max log levels. This helps avoid unwanted low-severity log spam, which can affect performance.

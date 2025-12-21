@@ -793,7 +793,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_eidolon"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -816,6 +816,7 @@ dependencies = [
  "bytemuck",
  "iyes_perf_ui",
  "log",
+ "rand",
  "tracing",
 ]
 
