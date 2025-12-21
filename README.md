@@ -3,7 +3,8 @@
 > *"Reality is illusion"*
 
 This is a generic instanced material, mostly for foliage/grass and as a high-performance replacement for gizmos when writing debugging tools.
-I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `Material` and `MaterialExtension` in Bevy.
+
+I am planning to use this as a base for other instanced materials, similar to the `Material` and `MaterialExtension` in Bevy.
 
 ## What is this for? 
 
@@ -18,6 +19,7 @@ Examples include grass, assemblies for foliage/trees and tools to debug them, as
 The standard implementation will only ever support simple colors, shapes and basic features.
 
 However, there is an example on how to use the standard PBR lighting, and I don't mind adding specific examples if the API is a bit more mature.
+
 I want to focus on composability and declarativity to make it as simple as possible to write new features as custom materials.
 
 ## Notes
