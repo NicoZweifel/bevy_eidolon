@@ -2,7 +2,7 @@
 //!
 //! > *"Reality is illusion"*
 //!
-//! This is a generic instanced material, mostly for foliage/grass and as a high-performance
+//! This is a generic instanced material, mostly for grass, foliage assemblies, and as a high-performance
 //! replacement for gizmos when writing debugging tools.
 //!
 //! I am planning to use this as a base for other instanced materials,
