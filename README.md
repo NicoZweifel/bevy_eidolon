@@ -1,4 +1,4 @@
-# bevy_eidolon
+# bevy_eidolon ![crates.io](https://img.shields.io/crates/v/bevy_eidolon.svg)
 
 > *"Reality is illusion"*
 
