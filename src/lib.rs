@@ -9,7 +9,7 @@
 //! similar to the `Material` and `MaterialExtension` in Bevy.
 //!
 //! **Caution: This package is in early development.**
-//! 
+//!
 //! ## What is this for?
 //!
 //! Drawing a lot of instances (millions) that require GPU-driven rendering with no
