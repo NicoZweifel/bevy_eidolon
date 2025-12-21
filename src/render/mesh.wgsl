@@ -16,11 +16,11 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
 
-    out.world_position = world_position.xyz;
+    out.world_position = world_position;
     out.clip_position = view.clip_from_world * world_position;
 
 #ifdef VERTEX_NORMALS
-    out.world_normal = normalize((final_matrix * vec4<f32>(vertex.normal, 0.0)).xyz);
+    out.world_normal = normalize(final_matrix * vec4<f32>(vertex.normal, 0.0));
 #else
     out.world_normal = vec3<f32>(0.0, 1.0, 0.0);
 #endif

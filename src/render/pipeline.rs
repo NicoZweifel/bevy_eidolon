@@ -171,10 +171,6 @@ where
 
         let shader_defs = &mut descriptor.vertex.shader_defs;
 
-        if !shader_defs.contains(&"MAY_DISCARD".into()) {
-            shader_defs.push("MAY_DISCARD".into());
-        }
-
         shader_defs.push("VISIBILITY_RANGE_DITHER".into());
 
         if let Some(fragment) = descriptor.fragment.as_mut() {

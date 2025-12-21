@@ -1,10 +1,9 @@
-use bevy_core_pipeline::{
-    core_3d::AlphaMask3d,
-    prepass::{
-        DepthPrepass, MotionVectorPrepass, NormalPrepass, OpaqueNoLightmap3dBatchSetKey,
-        OpaqueNoLightmap3dBinKey,
-    },
-};
+use crate::material::InstancedMaterial;
+use crate::prelude::*;
+use crate::render::draw::DrawInstancedMaterial;
+use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey};
+use bevy_core_pipeline::core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey};
+use bevy_core_pipeline::prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass};
 use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
 use bevy_render::{
@@ -21,14 +20,9 @@ use bevy_render::{
 };
 use std::hash::Hash;
 
-use crate::material::InstancedMaterial;
-use crate::prelude::*;
-use crate::render::draw::DrawInstancedMaterial;
-use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey};
-
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn queue_instanced_material<M>(
-    alpha_mask_3d_draw_functions: Res<DrawFunctions<AlphaMask3d>>,
+    opaque_3d_draw_functions: Res<DrawFunctions<Opaque3d>>,
     custom_pipeline: Res<InstancedMaterialPipeline<M>>,
     mut pipelines: ResMut<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
@@ -41,7 +35,7 @@ pub(crate) fn queue_instanced_material<M>(
     >,
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
-    mut alpha_mask_render_phases: ResMut<ViewBinnedRenderPhases<AlphaMask3d>>,
+    mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
     ticks: SystemChangeTick,
     views: Query<(
         &ExtractedView,
@@ -54,12 +48,12 @@ pub(crate) fn queue_instanced_material<M>(
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
 {
-    let draw_custom = alpha_mask_3d_draw_functions
+    let draw_custom = opaque_3d_draw_functions
         .read()
         .id::<DrawInstancedMaterial<M>>();
 
     for (view, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in &views {
-        let Some(alpha_mask_phase) = alpha_mask_render_phases.get_mut(&view.retained_view_entity)
+        let Some(opaque_mask_phases) = opaque_render_phases.get_mut(&view.retained_view_entity)
         else {
             continue;
         };
@@ -89,13 +83,11 @@ pub(crate) fn queue_instanced_material<M>(
                 continue;
             };
 
-            let mut key = InstancedMaterialPipelineKey {
+            let key = InstancedMaterialPipelineKey {
                 mesh_key: view_key
                     | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
                 bind_group_data: prepared_material.key.clone(),
             };
-
-            key.mesh_key |= MeshPipelineKey::MAY_DISCARD;
 
             let pipeline = pipelines
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
@@ -103,15 +95,16 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
-            alpha_mask_phase.add(
-                OpaqueNoLightmap3dBatchSetKey {
+            opaque_mask_phases.add(
+                Opaque3dBatchSetKey {
                     pipeline,
                     draw_function: draw_custom,
                     material_bind_group_index: None,
                     vertex_slab: vertex_slab.unwrap_or_default(),
                     index_slab,
+                    lightmap_slab: None,
                 },
-                OpaqueNoLightmap3dBinKey {
+                Opaque3dBinKey {
                     asset_id: mesh_instance.mesh_asset_id.into(),
                 },
                 (entity, *main_entity),

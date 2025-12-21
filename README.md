@@ -5,15 +5,20 @@
 This is a generic instanced material, mostly as a high-performance replacement for gizmos.
 I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `MaterialExtension` in bevy.
 
-## Who is this for? 
+## What is this for? 
 
-This won't have complex lighting support or anything like that. It's mostly about the infrastructure for instanced rendering.
+Drawing a lot of instances (millions) that require GPU-driven drawing with no transparency/alpha masking and need some variation in scale,
+or color etc. but can't be reasonably done with the default material pipeline, like assemblies for foliage or grass.
 
-The standard implementations will only ever support simple colors and shapes.
+**I don't want this to become a monster material that supports everything.** 
+
+The standard implementation will only ever support simple colors, shapes and basic features.
+
+However, there is an example on how to use the standard pbr lighting,
+and I want to focus on composability and declarativity to make it as simple as possible to write new features as custom materials.
 
 ## Notes
 
-- Completely ignores bevy's `Transform` currently. Might change that soon, but it's not a priority.
 - Uses a custom pipeline for the `VisibilityRange` because of conflicting indices with the standard pipeline. Might also be replaced by something else in the future.
 - I am open to discussions about the API (cover some shapes, simple cases), for now it's just a proof of concept.
 - This is a WIP. Eventually a nice API will exist and probably a way to overwrite/customize shaders.

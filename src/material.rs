@@ -139,10 +139,12 @@ impl InstancedMaterial for StandardInstancedMaterial {
             descriptor.primitive.cull_mode = None;
         }
 
-        if key.contains(InstancedMaterialKey::DEBUG) {
-            if let Some(fragment) = descriptor.fragment.as_mut() {
-                fragment.shader_defs.push("MATERIAL_DEBUG".into());
-            };
+        if let Some(fragment) = key
+            .contains(InstancedMaterialKey::DEBUG)
+            .then_some(descriptor.fragment.as_mut())
+            .flatten()
+        {
+            fragment.shader_defs.push("MATERIAL_DEBUG".into());
         }
 
         Ok(())

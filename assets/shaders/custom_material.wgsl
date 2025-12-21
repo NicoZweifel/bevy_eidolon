@@ -1,14 +1,9 @@
 #import bevy_pbr::mesh_view_bindings::view
 #import bevy_pbr::mesh_bindings::mesh
+
 #import bevy_eidolon::render::utils
-
-struct InstanceUniforms {
-    color: vec4<f32>,
-    visibility_range: vec4<f32>,
-    world_from_local: mat4x4<f32>
-};
-
-@group(3) @binding(100) var<uniform> instance_uniforms: InstanceUniforms;
+#import bevy_eidolon::render::bindings::instance_uniforms
+#import bevy_eidolon::render::io_types::{VertexOutput, Vertex}
 
 struct CustomMaterialUniform {
     color: vec4<f32>,
@@ -17,19 +12,6 @@ struct CustomMaterialUniform {
 @group(3) @binding(0) var<uniform> material: CustomMaterialUniform;
 @group(3) @binding(1) var base_color_texture: texture_2d<f32>;
 @group(3) @binding(2) var base_color_sampler: sampler;
-
-struct Vertex {
-    @location(0) position: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-    @location(8) i_pos_scale: vec4<f32>,
-    @location(9) i_rotation: f32,
-    @location(10) i_index: u32,
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {

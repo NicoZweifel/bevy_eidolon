@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 use bevy_app::{App, Plugin};
 use bevy_asset::{AssetApp, embedded_asset};
-use bevy_core_pipeline::core_3d::AlphaMask3d;
+use bevy_core_pipeline::core_3d::Opaque3d;
 use bevy_ecs::prelude::*;
 use bevy_render::{
     Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
@@ -68,7 +68,7 @@ where
         let render_app = app.sub_app_mut(RenderApp);
 
         render_app
-            .add_render_command::<AlphaMask3d, DrawInstancedMaterial<M>>()
+            .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>()
             .add_systems(
                 Render,

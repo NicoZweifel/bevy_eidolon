@@ -4,7 +4,6 @@ mod example;
 use bevy_app::{App, AppExit, Startup};
 use bevy_asset::{Assets, RenderAssetUsages};
 use bevy_camera::primitives::Aabb;
-use bevy_color::palettes::tailwind::*;
 use bevy_ecs::prelude::*;
 use bevy_eidolon::prelude::*;
 use bevy_math::{Quat, Vec3, Vec3A};
@@ -12,6 +11,7 @@ use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
 use bevy_render::render_resource::PolygonMode;
 use bevy_utils::default;
 
+use bevy_color::Color;
 use bevy_transform::prelude::Transform;
 use example::*;
 use std::sync::Arc;
@@ -59,46 +59,53 @@ fn setup(
     const SIDE_LENGTH: i32 = 1400;
     const SPACING: f32 = 0.2;
 
-    let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
-        .flat_map(|x| (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z)))
-        .enumerate()
-        .map(|(i, (x, z))| InstanceData {
-            position: Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
-            scale: 1.0,
-            index: i as u32,
-            ..default()
-        })
-        .collect();
+    for chunk in 0..5 {
+        let chunk_local = Vec3::new(chunk as f32 * SPACING * SIDE_LENGTH as f32, 0.0, 0.0);
 
-    let instance_count = instances.len();
-    println!("Spawning {} instances...", instance_count);
+        let instances: Vec<InstanceData> = (-SIDE_LENGTH / 2..SIDE_LENGTH / 2)
+            .flat_map(|x| (-SIDE_LENGTH / 2..SIDE_LENGTH / 2).map(move |z| (x, z)))
+            .enumerate()
+            .map(|(i, (x, z))| InstanceData {
+                position: chunk_local + Vec3::new(x as f32 * SPACING, 0.0, z as f32 * SPACING),
+                scale: 1.0,
+                index: i as u32,
+                ..default()
+            })
+            .collect();
 
-    let instance_material_data = InstanceMaterialData {
-        instances: Arc::new(instances),
-        color: GREEN_500.into(),
-        visibility_range: [0.0, 0.0, 2000.0, 2000.0].into(),
-    };
+        let instance_count = instances.len();
+        println!("Spawning {} instances...", instance_count);
 
-    cmd.spawn((
-        Transform::from_xyz(20.0, 0.0, 20.0)
-            .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
-        InstancedMeshMaterial(material_handle),
-        Mesh3d(mesh_handle),
-        instance_material_data,
-        // Use GPU driven cull pipeline
-        GpuCullCompute,
-        // Disable frustum culling or provide aabb.
-        // NoFrustumCulling,
-        Aabb {
-            center: single_aabb.center,
-            half_extents: single_aabb.half_extents
-                + Vec3A::new(
-                    (SIDE_LENGTH as f32 * SPACING) / 2.0,
-                    0.0,
-                    (SIDE_LENGTH as f32 * SPACING) / 2.0,
-                ),
-        },
-    ));
+        let hue = (chunk * 30) as f32 % 360.0;
+        let color = Color::hsl(hue, 1.0, 0.5).to_linear();
+
+        let instance_material_data = InstanceMaterialData {
+            instances: Arc::new(instances),
+            color,
+            visibility_range: [0.0, 0.0, 2000.0, 2000.0].into(),
+        };
+
+        cmd.spawn((
+            Transform::from_xyz(20.0, 0.0, 20.0)
+                .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
+            InstancedMeshMaterial(material_handle.clone()),
+            Mesh3d(mesh_handle.clone()),
+            instance_material_data,
+            // Use GPU driven cull pipeline
+            GpuCullCompute,
+            // Disable frustum culling or provide aabb.
+            // NoFrustumCulling,
+            Aabb {
+                center: single_aabb.center,
+                half_extents: single_aabb.half_extents
+                    + Vec3A::new(
+                        (SIDE_LENGTH as f32 * SPACING) / 2.0,
+                        0.0,
+                        (SIDE_LENGTH as f32 * SPACING) / 2.0,
+                    ),
+            },
+        ));
+    }
 }
 
 /// A list of points that will have a line drawn between each consecutive points

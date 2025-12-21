@@ -18,6 +18,8 @@ struct Vertex {
 #ifdef VERTEX_COLORS
     @location(5) color: vec4<f32>,
 #endif
+
+// TODO
 #ifdef SKINNED
     @location(6) joint_indices: vec4<u32>,
     @location(7) joint_weights: vec4<f32>,
@@ -30,15 +32,14 @@ struct Vertex {
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    @location(0) ao: f32,
 
 #ifdef VISIBILITY_RANGE_DITHER
-    @location(1) @interpolate(flat) visibility_range_dither: i32,
+    @location(0) @interpolate(flat) visibility_range_dither: i32,
 #endif
 
-    @location(2) world_position: vec3<f32>,
-    @location(3) world_normal: vec3<f32>,
-    @location(4) uv: vec2<f32>,
+    @location(1) world_position: vec4<f32>,
+    @location(2) world_normal: vec3<f32>,
+    @location(3) uv: vec2<f32>,
+    @location(4) world_tangent: vec4<f32>,
     @location(5) local_pos: vec3<f32>,
-    @location(6) world_tangent: vec4<f32>,
 };
