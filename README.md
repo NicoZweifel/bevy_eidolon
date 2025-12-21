@@ -13,10 +13,12 @@ but can't be reasonably done with the default material pipeline.
 
 Examples include grass, assemblies for foliage/trees and tools to debug them, as well as related systems (scattering, height mapping, obstacles).
 
+## Scope & Philosophy
+
+The standard implementation only supports simple colors, shapes, and basic features.
+
 > [!IMPORTANT]
 > **I don't want this to become a monster material that supports everything.** 
-
-The standard implementation will only ever support simple colors, shapes and basic features.
 
 However, there is an example on how to use the standard PBR lighting, and I don't mind adding specific examples if the API is a bit more mature.
 

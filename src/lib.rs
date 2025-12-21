@@ -21,9 +21,9 @@
 //!
 //! ## Scope & Philosophy
 //!
-//! **Important: I don't want this to become a monster material that supports everything.**
+//! The standard implementation only supports simple colors, shapes, and basic features.
 //!
-//! The standard implementation will only ever support simple colors, shapes, and basic features.
+//! **Important: I don't want this to become a monster material that supports everything.**
 //!
 //! However, there is an example on how to use the standard PBR lighting, and I don't mind
 //! adding specific examples if the API is a bit more mature.
