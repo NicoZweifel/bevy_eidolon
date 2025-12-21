@@ -22,7 +22,7 @@ fn main() -> AppExit {
             ExamplePlugin,
             InstancedMaterialCorePlugin,
             InstancedMaterialPlugin::<StandardInstancedMaterial>::default(),
-            GpuComputeCullPlugin
+            GpuComputeCullPlugin,
         ))
         .add_systems(Startup, setup)
         .run()

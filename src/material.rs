@@ -1,9 +1,6 @@
 use bevy_asset::{Asset, Handle};
 use bevy_color::{Color, ColorToComponents};
-use bevy_ecs::{
-    prelude::*,
-    query::QueryItem,
-};
+use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
@@ -21,7 +18,6 @@ use bytemuck::{Pod, Zeroable};
 
 use std::fmt::Debug;
 use std::hash::Hash;
-
 
 pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync + 'static {
     /// The vertex shader.
