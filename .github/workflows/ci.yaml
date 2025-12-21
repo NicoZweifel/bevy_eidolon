@@ -26,7 +26,7 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
-  # Run cargo test
+  # cargo test
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
       - name: Run cargo test
         run: cargo test
 
-  # Run cargo clippy -- -D warnings
+  # cargo clippy -- -D warnings
   clippy_check:
     name: Clippy
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
       - name: Run clippy
         run: cargo clippy -- -D warnings
 
-  # Run cargo fmt --all -- --check
+  # cargo fmt --all -- --check
   format:
     name: Format
     runs-on: ubuntu-latest
