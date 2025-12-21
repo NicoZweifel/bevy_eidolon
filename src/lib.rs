@@ -6,7 +6,7 @@
 //! replacement for gizmos when writing debugging tools.
 //!
 //! I am planning to use this as a base for other instanced materials by allowing shader
-//! overwrites, similar to the `MaterialExtension` in Bevy.
+//! overwrites, similar to the `Material` and `MaterialExtension` in Bevy.
 //!
 //! ## What is this for?
 //!

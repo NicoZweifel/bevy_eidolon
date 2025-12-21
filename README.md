@@ -3,14 +3,14 @@
 > *"Reality is illusion"*
 
 This is a generic instanced material, mostly for foliage/grass and as a high-performance replacement for gizmos when writing debugging tools.
-I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `MaterialExtension` in Bevy.
+I am planning to use this as a base for other instanced materials by allowing shader overwrites, similar to the `Material` and `MaterialExtension` in Bevy.
 
 ## What is this for? 
 
 Drawing a lot of instances (millions) that require GPU-driven rendering with no transparency/alpha masking and that need some variation in scale, color, etc.,
 but can't be reasonably done with the default material pipeline. 
 
-Example includes grass, assemblies for foliage/trees and tools to debug them, as well as related systems (scattering, height mapping, obstacles).
+Examples include grass, assemblies for foliage/trees and tools to debug them, as well as related systems (scattering, height mapping, obstacles).
 
 > [!IMPORTANT]
 > **I don't want this to become a monster material that supports everything.** 
