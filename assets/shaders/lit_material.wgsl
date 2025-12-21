@@ -16,25 +16,6 @@ struct CustomMaterialUniform {
 @group(3) @binding(1) var base_color_texture: texture_2d<f32>;
 @group(3) @binding(2) var base_color_sampler: sampler;
 
-@vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-
-    var scale = vertex.i_pos_scale.w;
-    var translation = vertex.i_pos_scale.xyz;
-
-    let final_matrix = utils::calculate_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
-    let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
-
-    out.clip_position = view.clip_from_world * world_position;
-    out.uv = vertex.uv;
-
-    out.world_position = world_position;
-    out.world_normal = (final_matrix * vec4<f32>(vertex.normal, 0.0)).xyz;
-
-    return out;
-}
-
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_color = textureSample(base_color_texture, base_color_sampler, in.uv);

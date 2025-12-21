@@ -49,10 +49,6 @@ impl From<&LitMaterial> for LitMaterialUniform {
 }
 
 impl InstancedMaterial for LitMaterial {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/lit_material.wgsl".into()
-    }
-
     fn fragment_shader() -> ShaderRef {
         "shaders/lit_material.wgsl".into()
     }
@@ -75,7 +71,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
 ) {
-    let texture_handle = asset_server.load("icon.png");
+    let texture_handle = asset_server.load("test.png");
 
     let material_handle = custom_materials.add(LitMaterial {
         color: BLUE_500.into(),

@@ -93,36 +93,37 @@ pub(crate) fn prepare_instanced_bind_group<M>(
         };
         let contents = bytes_of(&uniforms);
 
-        let buffer = if let Some(instance_uniform_buffer) = uniform_buffer {
-            render_queue.write_buffer(&instance_uniform_buffer.buffer, 0, contents);
-            instance_uniform_buffer.buffer.clone()
-        } else {
-            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                label: Some("instanced_material_uniform_buffer"),
-                contents,
-                usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        let buffer = uniform_buffer
+            .map(|InstanceUniformBuffer { buffer }| {
+                render_queue.write_buffer(buffer, 0, contents);
+                buffer.clone()
+            })
+            .unwrap_or_else(|| {
+                let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                    label: Some("instanced_material_uniform_buffer"),
+                    contents,
+                    usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+                });
+
+                commands.entity(entity).insert(InstanceUniformBuffer {
+                    buffer: buffer.clone(),
+                });
+
+                buffer
             });
 
-            commands.entity(entity).insert(InstanceUniformBuffer {
-                buffer: buffer.clone(),
-            });
-
-            buffer
-        };
-
-        let mut entries: Vec<BindGroupEntry> = prepared_material
+        let entries: Vec<BindGroupEntry> = prepared_material
             .bindings
             .iter()
             .map(|(index, resource)| BindGroupEntry {
                 binding: *index,
                 resource: resource.get_binding(),
             })
+            .chain(std::iter::once(BindGroupEntry {
+                binding: INSTANCE_BINDING_INDEX,
+                resource: buffer.as_entire_binding(),
+            }))
             .collect();
-
-        entries.push(BindGroupEntry {
-            binding: INSTANCE_BINDING_INDEX,
-            resource: buffer.as_entire_binding(),
-        });
 
         let bind_group = render_device.create_bind_group(
             "instanced_material_combined_bind_group",
@@ -136,7 +137,7 @@ pub(crate) fn prepare_instanced_bind_group<M>(
     }
 }
 
-pub(crate) fn prepare_indirect_draw_buffer(
+pub fn prepare_indirect_draw_buffer(
     mut cmd: Commands,
     query: Query<
         (
@@ -153,24 +154,16 @@ pub(crate) fn prepare_indirect_draw_buffer(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
 ) {
-    for (entity, main_entity, instance_buffer, indirect_buffer_opt) in &query {
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
-            continue;
-        };
+    for ((entity, _, _, o_indirect_buffer), command) in query.iter().filter_map(|query_data| {
+        let (_, main_entity, instance_buffer, ..) = query_data;
+        let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
         let mesh_asset_id = mesh_instance.mesh_asset_id;
 
-        let Some(gpu_mesh) = meshes.get(mesh_asset_id) else {
-            continue;
-        };
-        let Some(vertex_buffer_slice) = mesh_allocator.mesh_vertex_slice(&mesh_asset_id) else {
-            continue;
-        };
+        let gpu_mesh = meshes.get(mesh_asset_id)?;
+        let vertex_buffer_slice = mesh_allocator.mesh_vertex_slice(&mesh_asset_id)?;
+        let index_buffer_slice = mesh_allocator.mesh_index_slice(&mesh_asset_id)?;
 
         if let RenderMeshBufferInfo::Indexed { count, .. } = gpu_mesh.buffer_info {
-            let Some(index_buffer_slice) = mesh_allocator.mesh_index_slice(&mesh_asset_id) else {
-                continue;
-            };
-
             let command = DrawIndexedIndirectArgs {
                 index_count: count,
                 instance_count: instance_buffer.length as u32,
@@ -179,20 +172,24 @@ pub(crate) fn prepare_indirect_draw_buffer(
                 first_instance: 0,
             };
 
-            let contents = command.as_bytes();
+            Some((query_data, command))
+        } else {
+            None
+        }
+    }) {
+        let contents = command.as_bytes();
 
-            if let Some(indirect_buffer) = indirect_buffer_opt {
-                render_queue.write_buffer(&indirect_buffer.buffer, 0, contents);
-            } else {
-                let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-                    label: Some("draw_indexed_indirect buffer"),
-                    contents,
-                    usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-                });
+        if let Some(indirect_buffer) = o_indirect_buffer {
+            render_queue.write_buffer(&indirect_buffer.buffer, 0, contents);
+        } else {
+            let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                label: Some("draw_indexed_indirect buffer"),
+                contents,
+                usage: BufferUsages::INDIRECT | BufferUsages::COPY_DST,
+            });
 
-                cmd.entity(entity)
-                    .insert(GpuDrawIndexedIndirect { buffer, offset: 0 });
-            }
+            cmd.entity(entity)
+                .insert(GpuDrawIndexedIndirect { buffer, offset: 0 });
         }
     }
 }

@@ -20,9 +20,18 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     out.clip_position = view.clip_from_world * world_position;
 
 #ifdef VERTEX_NORMALS
-    out.world_normal = normalize(final_matrix * vec4<f32>(vertex.normal, 0.0));
+    out.world_normal = normalize((final_matrix * vec4<f32>(vertex.normal, 0.0)).xyz);
 #else
     out.world_normal = vec3<f32>(0.0, 1.0, 0.0);
+#endif
+
+#ifdef VERTEX_TANGENTS
+    out.world_tangent = vec4<f32>(
+        normalize((final_matrix * vec4<f32>(vertex.tangent.xyz, 0.0)).xyz),
+        vertex.tangent.w
+    );
+#else
+    out.world_tangent = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 #endif
 
 #ifdef VERTEX_UVS_A

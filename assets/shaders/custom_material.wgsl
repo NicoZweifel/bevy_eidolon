@@ -1,5 +1,6 @@
 #import bevy_pbr::mesh_view_bindings::view
 #import bevy_pbr::mesh_bindings::mesh
+#import bevy_pbr::mesh_view_bindings::globals
 
 #import bevy_eidolon::render::utils
 #import bevy_eidolon::render::bindings::instance_uniforms
@@ -7,6 +8,9 @@
 
 struct CustomMaterialUniform {
     color: vec4<f32>,
+    speed: f32,
+    amplitude: f32,
+    frequency: f32
 };
 
 @group(3) @binding(0) var<uniform> material: CustomMaterialUniform;
@@ -17,14 +21,21 @@ struct CustomMaterialUniform {
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
 
-    var scale = vertex.i_pos_scale.w;
-    var translation = vertex.i_pos_scale.xyz;
+    var local_position = vertex.position;
 
-    let final_matrix = utils::calculate_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
+    local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency + globals.time
+                                                                                            * material.speed)
+                                                                                            * material.amplitude;
 
-    let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
+    let final_matrix = utils::calculate_instance_world_matrix(
+        vertex.i_pos_scale,
+        vertex.i_rotation,
+        instance_uniforms.world_from_local
+    );
+
+    let world_position = final_matrix * vec4<f32>(local_position, 1.0);
+
     out.clip_position = view.clip_from_world * world_position;
-
     out.uv = vertex.uv;
 
     return out;

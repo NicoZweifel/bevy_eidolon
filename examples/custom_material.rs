@@ -1,3 +1,4 @@
+/// Showcases how to override the fragment and vertex shader, as well as usage of material keys and custom shader defines.
 #[path = "utils/example.rs"]
 mod example;
 
@@ -31,6 +32,9 @@ use std::sync::Arc;
 struct CustomMaterial {
     // Another color to multiply with the existing colors
     pub color: LinearRgba,
+    pub speed: f32,
+    pub amplitude: f32,
+    pub frequency: f32,
     // A custom shader def, using a key, makes the fragment shader return red to demonstrate
     pub is_red: bool,
 
@@ -40,15 +44,34 @@ struct CustomMaterial {
     pub texture: Handle<Image>,
 }
 
+impl Default for CustomMaterial {
+    fn default() -> Self {
+        Self {
+            color: BLUE_500.into(),
+            is_red: false,
+            speed: 5.,
+            amplitude: 0.2,
+            frequency: 2.,
+            texture: default(),
+        }
+    }
+}
+
 #[derive(Clone, Default, ShaderType, Debug)]
 struct CustomMaterialUniform {
     pub color: Vec4,
+    pub speed: f32,
+    pub amplitude: f32,
+    pub frequency: f32,
 }
 
 impl From<&CustomMaterial> for CustomMaterialUniform {
     fn from(material: &CustomMaterial) -> Self {
         Self {
             color: material.color.to_vec4(),
+            speed: material.speed,
+            amplitude: material.amplitude,
+            frequency: material.frequency,
         }
     }
 }
@@ -92,18 +115,17 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
 ) {
-    let texture_handle = asset_server.load("icon.png");
+    let texture_handle = asset_server.load("test.png");
 
     let material_handle = custom_materials.add(CustomMaterial {
-        color: BLUE_500.into(),
         texture: texture_handle.clone(),
-        is_red: false,
+        ..default()
     });
 
     let red_material_handle = custom_materials.add(CustomMaterial {
-        color: BLUE_500.into(),
         texture: texture_handle.clone(),
         is_red: true,
+        ..default()
     });
 
     let mesh_handle = meshes.add(CuboidMeshBuilder::default().build());

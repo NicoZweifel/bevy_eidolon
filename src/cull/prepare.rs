@@ -1,18 +1,20 @@
 use bevy_camera::Camera;
-use bevy_ecs::change_detection::{Res, ResMut};
-use bevy_ecs::entity::Entity;
-use bevy_ecs::prelude::{Commands, Query, With};
+use bevy_ecs::prelude::*;
 use bevy_math::Vec4;
 use bevy_pbr::RenderMeshInstances;
-use bevy_render::mesh::allocator::MeshAllocator;
-use bevy_render::mesh::{RenderMesh, RenderMeshBufferInfo};
-use bevy_render::render_asset::RenderAssets;
-use bevy_render::render_resource::{
-    BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages, DrawIndexedIndirectArgs,
+use bevy_render::{
+    mesh::allocator::MeshAllocator,
+    mesh::{RenderMesh, RenderMeshBufferInfo},
+    render_asset::RenderAssets,
+    render_resource::{
+        BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages,
+        DrawIndexedIndirectArgs,
+    },
+    renderer::{RenderDevice, RenderQueue},
+    sync_world::MainEntity,
+    view::ExtractedView,
 };
-use bevy_render::renderer::{RenderDevice, RenderQueue};
-use bevy_render::sync_world::MainEntity;
-use bevy_render::view::ExtractedView;
+
 use bevy_transform::components::GlobalTransform;
 
 use bytemuck::bytes_of;
