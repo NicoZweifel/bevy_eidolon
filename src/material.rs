@@ -1,24 +1,18 @@
-use crate::pipeline::InstancedMaterialPipeline;
-
-use bevy_asset::{Asset, AssetId, Handle};
+use bevy_asset::{Asset, Handle};
 use bevy_color::{Color, ColorToComponents};
 use bevy_ecs::{
     prelude::*,
     query::QueryItem,
-    system::{SystemParamItem, lifetimeless::SRes},
 };
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
 use bevy_render::{
     batching::NoAutomaticBatching,
-    render_resource::AsBindGroupError,
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
         extract_component::ExtractComponent,
-        render_asset::{PrepareAssetError, RenderAsset},
-        render_resource::{OwnedBindingResource, PolygonMode, ShaderType},
-        renderer::RenderDevice,
+        render_resource::{PolygonMode, ShaderType},
     },
 };
 use bevy_shader::ShaderRef;
@@ -27,7 +21,7 @@ use bytemuck::{Pod, Zeroable};
 
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::marker::PhantomData;
+
 
 pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync + 'static {
     /// The vertex shader.
@@ -184,55 +178,6 @@ impl<M: InstancedMaterial> ExtractComponent for InstancedMeshMaterial<M> {
 
     fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
         Some(item.clone())
-    }
-}
-
-pub struct PreparedInstancedMaterial<M: InstancedMaterial> {
-    pub bindings: Vec<(u32, OwnedBindingResource)>,
-    pub key: M::Data,
-    _phantom: PhantomData<M>,
-}
-
-impl<M: InstancedMaterial> PreparedInstancedMaterial<M> {
-    pub fn new(bindings: Vec<(u32, OwnedBindingResource)>, key: M::Data) -> Self {
-        Self {
-            bindings,
-            key,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
-    type SourceAsset = M;
-    type Param = (
-        SRes<RenderDevice>,
-        SRes<InstancedMaterialPipeline<M>>,
-        <M as AsBindGroup>::Param,
-    );
-
-    fn prepare_asset(
-        source_asset: Self::SourceAsset,
-        _asset_id: AssetId<Self::SourceAsset>,
-        (render_device, pipeline, material_params): &mut SystemParamItem<Self::Param>,
-        _previous_asset: Option<&Self>,
-    ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        match source_asset.unprepared_bind_group(
-            &pipeline.combined_layout,
-            render_device,
-            material_params,
-            false,
-        ) {
-            Ok(unprepared) => Ok(PreparedInstancedMaterial {
-                key: source_asset.bind_group_data(),
-                bindings: unprepared.bindings.0,
-                _phantom: PhantomData,
-            }),
-            Err(AsBindGroupError::RetryNextUpdate) => {
-                Err(PrepareAssetError::RetryNextUpdate(source_asset))
-            }
-            Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
-        }
     }
 }
 

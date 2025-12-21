@@ -1,12 +1,8 @@
-use super::prepare::*;
-use super::{
-    components::GpuCull,
-    draw::DrawInstancedMaterial,
-    node::InstancedComputeNode,
-    pipeline::{InstancedComputePipeline, InstancedMaterialPipeline},
-    systems::*,
-};
 use crate::prelude::*;
+use crate::render::{
+    draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*, queue::*,
+};
+
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -14,15 +10,12 @@ use bevy_app::{App, Plugin};
 use bevy_asset::{AssetApp, embedded_asset};
 use bevy_core_pipeline::core_3d::AlphaMask3d;
 use bevy_ecs::prelude::*;
-use bevy_render::graph::CameraDriverLabel;
 use bevy_render::{
-    Render, RenderApp, RenderSystems,
-    extract_component::ExtractComponentPlugin,
-    render_asset::RenderAssetPlugin,
-    render_graph::{RenderGraph, RenderLabel},
-    render_phase::AddRenderCommand,
+    Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
+    render_asset::RenderAssetPlugin, render_graph::RenderLabel, render_phase::AddRenderCommand,
     render_resource::SpecializedMeshPipelines,
 };
+use bevy_shader::load_shader_library;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
 pub struct InstancedMaterialComputeLabel;
@@ -31,40 +24,23 @@ pub struct InstancedMaterialCorePlugin;
 
 impl Plugin for InstancedMaterialCorePlugin {
     fn build(&self, app: &mut App) {
-        embedded_asset!(app, "cull.wgsl");
-        embedded_asset!(app, "render.wgsl");
+        load_shader_library!(app, "types.wgsl");
+        load_shader_library!(app, "io_types.wgsl");
+        load_shader_library!(app, "bindings.wgsl");
+        load_shader_library!(app, "utils.wgsl");
 
-        app.add_plugins((
-            ExtractComponentPlugin::<InstanceMaterialData>::default(),
-            ExtractComponentPlugin::<GpuCull>::default(),
-        ));
+        embedded_asset!(app, "mesh.wgsl");
+        embedded_asset!(app, "shading.wgsl");
+
+        app.add_plugins((ExtractComponentPlugin::<InstanceMaterialData>::default(),));
 
         let render_app = app.sub_app_mut(RenderApp);
 
         render_app.add_systems(
             Render,
-            (
-                (queue_instanced_material_compute_pipeline,).in_set(RenderSystems::QueueMeshes),
-                (
-                    prepare_instance_buffer,
-                    prepare_indirect_draw_buffer,
-                    prepare_global_cull_buffer,
-                    prepare_instanced_material_compute_resources.after(prepare_global_cull_buffer),
-                )
-                    .in_set(RenderSystems::PrepareResources),
-            ),
+            ((prepare_instance_buffer, prepare_indirect_draw_buffer)
+                .in_set(RenderSystems::PrepareResources),),
         );
-
-        let compute_node = InstancedComputeNode::from_world(render_app.world_mut());
-        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
-
-        render_graph.add_node(InstancedMaterialComputeLabel, compute_node);
-        render_graph.add_node_edge(InstancedMaterialComputeLabel, CameraDriverLabel);
-    }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedComputePipeline>();
     }
 }
 

@@ -22,6 +22,7 @@ fn main() -> AppExit {
             ExamplePlugin,
             InstancedMaterialCorePlugin,
             InstancedMaterialPlugin::<StandardInstancedMaterial>::default(),
+            GpuComputeCullPlugin
         ))
         .add_systems(Startup, setup)
         .run()
@@ -84,8 +85,8 @@ fn setup(
         InstancedMeshMaterial(material_handle),
         Mesh3d(mesh_handle),
         instance_material_data,
-        // Use GPU driven pipeline
-        GpuCull,
+        // Use GPU driven cull pipeline
+        GpuCullCompute,
         // Disable frustum culling or provide aabb.
         // NoFrustumCulling,
         Aabb {

@@ -1,8 +1,3 @@
-use crate::{
-    components::{GpuDrawIndexedIndirect, InstancedComputeBindGroup, InstancedComputeSourceBuffer},
-    pipeline::InstancedComputePipeline,
-    resources::GlobalCullBuffer,
-};
 use bevy_ecs::prelude::*;
 use bevy_render::{
     render_graph::{Node, NodeRunError, RenderGraphContext},
@@ -12,6 +7,11 @@ use bevy_render::{
 
 #[cfg(feature = "trace")]
 use tracing::{error, trace, warn};
+
+use crate::components::{
+    GpuDrawIndexedIndirect, InstancedComputeBindGroup, InstancedComputeSourceBuffer,
+};
+use crate::{cull::pipeline::InstancedComputePipeline, resources::GlobalCullBuffer};
 
 enum InstancedComputeNodeState {
     Loading,

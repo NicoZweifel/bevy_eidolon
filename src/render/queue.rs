@@ -1,10 +1,3 @@
-use super::{
-    components::InstanceMaterialData,
-    draw::DrawInstancedMaterial,
-    material::InstancedMeshMaterial,
-    pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
-};
-use crate::pipeline::InstancedComputePipeline;
 use bevy_core_pipeline::{
     core_3d::AlphaMask3d,
     prepass::{
@@ -26,14 +19,15 @@ use bevy_render::{
     view::ExtractedView,
     view::Msaa,
 };
-use bevy_utils::default;
 use std::hash::Hash;
 
 use crate::material::InstancedMaterial;
-use crate::prelude::PreparedInstancedMaterial;
+use crate::prelude::*;
+use crate::render::draw::DrawInstancedMaterial;
+use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey};
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn queue_instanced_material<M>(
+pub(crate) fn queue_instanced_material<M>(
     alpha_mask_3d_draw_functions: Res<DrawFunctions<AlphaMask3d>>,
     custom_pipeline: Res<InstancedMaterialPipeline<M>>,
     mut pipelines: ResMut<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>,
@@ -83,8 +77,9 @@ pub(super) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, e_main, h_material) in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*e_main) else {
+        for (entity, main_entity, h_material) in &material_meshes {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
+            else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
@@ -119,7 +114,7 @@ pub(super) fn queue_instanced_material<M>(
                 OpaqueNoLightmap3dBinKey {
                     asset_id: mesh_instance.mesh_asset_id.into(),
                 },
-                (entity, *e_main),
+                (entity, *main_entity),
                 mesh_instance.current_uniform_index,
                 BinnedRenderPhaseType::mesh(
                     mesh_instance.should_batch(),
@@ -129,28 +124,4 @@ pub(super) fn queue_instanced_material<M>(
             );
         }
     }
-}
-
-pub(super) fn queue_instanced_material_compute_pipeline(
-    pipeline_cache: Res<PipelineCache>,
-    mut compute_pipeline: ResMut<InstancedComputePipeline>,
-) {
-    if compute_pipeline.pipeline_id.is_some() {
-        return;
-    }
-
-    let id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-        label: Some("instanced_material_compute_pipeline".into()),
-        layout: vec![
-            compute_pipeline.entity_layout.clone(),
-            compute_pipeline.global_layout.clone(),
-        ],
-        push_constant_ranges: vec![],
-        shader: compute_pipeline.shader.clone(),
-        shader_defs: vec![],
-        entry_point: Some("main".into()),
-        ..default()
-    });
-
-    compute_pipeline.pipeline_id = Some(id);
 }

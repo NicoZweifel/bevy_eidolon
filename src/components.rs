@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 /// Marker component to opt in to GPU-driven culling/preparation.
 #[derive(Component, Clone, Copy, Default, ExtractComponent)]
-pub struct GpuCull;
+pub struct GpuCullCompute;
 
 /// Sets the material color.
 ///

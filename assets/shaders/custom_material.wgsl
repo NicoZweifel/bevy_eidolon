@@ -1,9 +1,11 @@
 #import bevy_pbr::mesh_view_bindings::view
 #import bevy_pbr::mesh_bindings::mesh
+#import bevy_eidolon::render::utils
 
 struct InstanceUniforms {
     color: vec4<f32>,
     visibility_range: vec4<f32>,
+    world_from_local: mat4x4<f32>
 };
 
 @group(3) @binding(100) var<uniform> instance_uniforms: InstanceUniforms;
@@ -33,22 +35,14 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
 
-    let scale = vertex.i_pos_scale.w;
-    let translation = vertex.i_pos_scale.xyz;
-    let angle = vertex.i_rotation;
-    let c = cos(angle);
-    let s = sin(angle);
+    var scale = vertex.i_pos_scale.w;
+    var translation = vertex.i_pos_scale.xyz;
 
-    let rot_matrix = mat3x3<f32>(
-        vec3<f32>(c, 0.0, s),
-        vec3<f32>(0.0, 1.0, 0.0),
-        vec3<f32>(-s, 0.0, c)
-    );
+    let final_matrix = utils::calculate_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
 
-    let local_pos = rot_matrix * (vertex.position * scale);
-    let world_position = local_pos + translation;
+    let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
+    out.clip_position = view.clip_from_world * world_position;
 
-    out.clip_position = view.clip_from_world * vec4<f32>(world_position, 1.0);
     out.uv = vertex.uv;
 
     return out;
@@ -65,3 +59,4 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 
     return material.color * tex_color * instance_uniforms.color;
 }
+
