@@ -55,22 +55,22 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     pbr_input.flags = mesh[0].flags;
     pbr_input.is_orthographic = view.clip_from_view[3].w == 1.0;
 
-    pbr_input.world_normal = bevy_pbr::pbr_functions::prepare_world_normal(
+    pbr_input.world_normal = pbr_functions::prepare_world_normal(
         in.world_normal,
         false,
         false
     );
 
-    pbr_input.V = bevy_pbr::pbr_functions::calculate_view(
+    pbr_input.V = pbr_functions::calculate_view(
         in.world_position,
         pbr_input.is_orthographic
     );
 
     pbr_input.N = normalize(pbr_input.world_normal);
 
-    var output_color = bevy_pbr::pbr_functions::apply_pbr_lighting(pbr_input);
+    var output_color = pbr_functions::apply_pbr_lighting(pbr_input);
 
-    output_color = bevy_pbr::pbr_functions::main_pass_post_lighting_processing(
+    output_color = pbr_functions::main_pass_post_lighting_processing(
         pbr_input,
         output_color
     );
