@@ -1,5 +1,5 @@
 # bevy_eidolon 
-[![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/NicoZweifel/bevy_eidolon?tab=readme-ov-file#licensecreditsinspirationsreferences)
+[![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/NicoZweifel/bevy_eidolon?tab=readme-ov-file#license)
 [![Crates.io](https://img.shields.io/crates/v/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
 [![Downloads](https://img.shields.io/crates/d/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
 [![Docs](https://docs.rs/bevy_eidolon/badge.svg)](https://docs.rs/bevy_eidolon/)
@@ -31,6 +31,13 @@ The standard implementation only supports simple colors and basic features.
 However, there is an example on how to use the standard PBR lighting, and I don't mind adding specific examples if the API is a bit more mature.
 
 I want to focus on composability and declarativity to make it as simple as possible to write new features as custom materials.
+
+## License
+
+Dual-licensed:
+
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
 
 ## Notes
 
