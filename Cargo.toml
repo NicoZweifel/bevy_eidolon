@@ -9,26 +9,26 @@ repository = "https://github.com/NicoZweifel/bevy_feronia"
 exclude = ["assets/", ".github/"]
 
 [dependencies]
-bevy_render = { version = "^0.17", default-features = false }
-bevy_derive = { version = "^0.17", default-features = false }
-bevy_ecs = { version = "^0.17", default-features = false }
-bevy_math = { version = "^0.17", default-features = false }
-bevy_reflect = { version = "^0.17", default-features = false }
-bevy_utils = { version = "^0.17", default-features = false }
-bevy_color= { version = "^0.17", default-features = false }
-bevy_asset= { version = "^0.17", default-features = false }
-bevy_camera= { version = "^0.17", default-features = false }
-bevy_pbr= { version = "^0.17", default-features = false }
-bevy_core_pipeline= { version = "^0.17", default-features = false }
-bevy_app= { version = "^0.17", default-features = false }
-bevy_mesh= { version = "^0.17", default-features = false }
-bevy_shader= { version = "^0.17", default-features = false }
-bevy_transform= { version = "^0.17", default-features = false }
+bevy_render = { version = "0.17", default-features = false }
+bevy_derive = { version = "0.17", default-features = false }
+bevy_ecs = { version = "0.17", default-features = false }
+bevy_math = { version = "0.17", default-features = false }
+bevy_reflect = { version = "0.17", default-features = false }
+bevy_utils = { version = "0.17", default-features = false }
+bevy_color= { version = "0.17", default-features = false }
+bevy_asset= { version = "0.17", default-features = false }
+bevy_camera= { version = "0.17", default-features = false }
+bevy_pbr= { version = "0.17", default-features = false }
+bevy_core_pipeline= { version = "0.17", default-features = false }
+bevy_app= { version = "0.17", default-features = false }
+bevy_mesh= { version = "0.17", default-features = false }
+bevy_shader= { version = "0.17", default-features = false }
+bevy_transform= { version = "0.17", default-features = false }
 
-bytemuck = "^1.24"
-bitflags = "^2.10"
+bytemuck = "1.24"
+bitflags = "2.10"
 
-tracing = { version = "^0.1", default-features = false, optional = true }
+tracing = { version = "0.1", default-features = false, optional = true }
 
 [dev-dependencies]
 bevy-inspector-egui = "0.35.0"
