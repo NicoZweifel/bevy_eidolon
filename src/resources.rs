@@ -1,6 +1,7 @@
 use bevy_ecs::resource::Resource;
 use bevy_math::prelude::*;
 use bevy_render::render_resource::{BindGroup, Buffer, ShaderType};
+
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]

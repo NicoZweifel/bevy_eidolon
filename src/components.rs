@@ -1,4 +1,4 @@
-use bevy_color::{Color, LinearRgba};
+use bevy_color::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::{Mat4, Vec3, Vec4};

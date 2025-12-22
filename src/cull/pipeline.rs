@@ -2,11 +2,13 @@ use std::num::NonZeroU64;
 
 use bevy_asset::{AssetPath, AssetServer, Handle, embedded_path};
 use bevy_ecs::prelude::*;
-use bevy_render::render_resource::{
-    BindGroupLayout, BindGroupLayoutEntry, BindingType, BufferBindingType, CachedComputePipelineId,
-    ShaderStages, ShaderType,
+use bevy_render::{
+    render_resource::{
+        BindGroupLayout, BindGroupLayoutEntry, BindingType, BufferBindingType,
+        CachedComputePipelineId, ShaderStages, ShaderType,
+    },
+    renderer::RenderDevice,
 };
-use bevy_render::renderer::RenderDevice;
 use bevy_shader::Shader;
 
 use crate::components::InstanceData;

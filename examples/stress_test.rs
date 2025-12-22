@@ -82,7 +82,7 @@ fn setup(
     config: ResMut<StressTestConfig>,
     existing: Query<Entity, With<InstanceMaterialData>>,
 ) {
-    existing.iter().for_each(|e| cmd.entity(e).despawn());
+    existing.iter().for_each(|e| cmd.entity(e).try_despawn());
     meshes.ids().collect::<Vec<_>>().into_iter().for_each(|x| {
         meshes.remove(x);
     });

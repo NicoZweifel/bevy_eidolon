@@ -1,19 +1,18 @@
-use crate::components::GpuCullCompute;
-use crate::cull::node::InstancedComputeNode;
-use crate::cull::pipeline::InstancedComputePipeline;
-use crate::cull::prepare::{
-    prepare_global_cull_buffer, prepare_instanced_material_compute_resources,
+use crate::cull::{
+    node::InstancedComputeNode,
+    pipeline::InstancedComputePipeline,
+    prepare::{prepare_global_cull_buffer, prepare_instanced_material_compute_resources},
+    queue::queue_instanced_material_compute_pipeline,
 };
-use crate::cull::queue::queue_instanced_material_compute_pipeline;
-use crate::prelude::InstancedMaterialComputeLabel;
+use crate::prelude::*;
 
-use bevy_app::{App, Plugin};
+use bevy_app::prelude::*;
 use bevy_asset::embedded_asset;
-use bevy_ecs::prelude::{FromWorld, IntoScheduleConfigs};
-use bevy_render::extract_component::ExtractComponentPlugin;
-use bevy_render::graph::CameraDriverLabel;
-use bevy_render::render_graph::RenderGraph;
-use bevy_render::{Render, RenderApp, RenderSystems};
+use bevy_ecs::prelude::*;
+use bevy_render::{
+    Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
+    graph::CameraDriverLabel, render_graph::RenderGraph,
+};
 use bevy_shader::load_shader_library;
 
 pub struct GpuComputeCullPlugin;

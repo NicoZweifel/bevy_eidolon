@@ -8,6 +8,7 @@ use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout};
 use bevy_pbr::{MeshPipeline, MeshPipelineKey};
 use bevy_render::{render_resource::*, renderer::RenderDevice};
 use bevy_shader::{Shader, ShaderRef};
+
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
