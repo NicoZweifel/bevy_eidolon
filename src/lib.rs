@@ -23,7 +23,7 @@
 //!
 //! ## Scope & Philosophy
 //!
-//! The standard implementation only supports simple colors, shapes, and basic features.
+//! The standard implementation only supports simple colors and basic features.
 //!
 //! **Important: I don't want this to become a monster material that supports everything.**
 //!

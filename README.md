@@ -18,7 +18,7 @@ Examples include grass, assemblies for foliage/trees and tools to debug them, as
 
 ## Scope & Philosophy
 
-The standard implementation only supports simple colors, shapes, and basic features.
+The standard implementation only supports simple colors and basic features.
 
 > [!IMPORTANT]
 > **I don't want this to become a monster material that supports everything.** 
