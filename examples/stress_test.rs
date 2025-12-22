@@ -43,7 +43,7 @@ fn main() -> AppExit {
             Update,
             (
                 setup.run_if(resource_changed::<StressTestConfig>),
-                stress_test_chunk_replacement,
+                stress_test_chunk_replacement.run_if(not(resource_changed::<StressTestConfig>)),
             ),
         )
         .run()
