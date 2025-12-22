@@ -7,5 +7,4 @@ pub mod queue;
 
 pub mod prelude {
     pub use super::plugin::*;
-    pub use super::prepared_material::*;
 }

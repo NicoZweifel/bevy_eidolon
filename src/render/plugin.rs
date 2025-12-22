@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use crate::render::{
-    draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*, queue::*,
+    draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
+    prepared_material::PreparedInstancedMaterial, queue::*,
 };
 
 use std::hash::Hash;

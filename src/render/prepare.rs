@@ -1,5 +1,7 @@
 use crate::prelude::*;
-use crate::render::pipeline::InstancedMaterialPipeline;
+use crate::render::{
+    pipeline::InstancedMaterialPipeline, prepared_material::PreparedInstancedMaterial,
+};
 
 use bevy_ecs::prelude::*;
 use bevy_pbr::RenderMeshInstances;

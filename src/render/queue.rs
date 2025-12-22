@@ -1,9 +1,14 @@
-use crate::material::InstancedMaterial;
 use crate::prelude::*;
-use crate::render::draw::DrawInstancedMaterial;
-use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey};
-use bevy_core_pipeline::core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey};
-use bevy_core_pipeline::prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass};
+use crate::render::{
+    draw::DrawInstancedMaterial,
+    pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
+    prepared_material::PreparedInstancedMaterial,
+};
+
+use bevy_core_pipeline::{
+    core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey},
+    prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass},
+};
 use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
 use bevy_render::{
@@ -18,6 +23,7 @@ use bevy_render::{
     view::ExtractedView,
     view::Msaa,
 };
+
 use std::hash::Hash;
 
 #[allow(clippy::too_many_arguments)]
