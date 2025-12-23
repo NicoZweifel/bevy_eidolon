@@ -18,6 +18,7 @@ use crate::render::prepare::INSTANCE_BINDING_INDEX;
 pub struct InstancedMaterialPipelineKey<M: InstancedMaterial> {
     pub mesh_key: MeshPipelineKey,
     pub bind_group_data: M::Data,
+    pub is_prepass: bool,
 }
 
 impl<M> Clone for InstancedMaterialPipelineKey<M>
@@ -29,6 +30,7 @@ where
         Self {
             mesh_key: self.mesh_key,
             bind_group_data: self.bind_group_data.clone(),
+            is_prepass: self.is_prepass,
         }
     }
 }
@@ -39,7 +41,9 @@ where
     M::Data: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.mesh_key == other.mesh_key && self.bind_group_data == other.bind_group_data
+        self.mesh_key == other.mesh_key
+            && self.bind_group_data == other.bind_group_data
+            && self.is_prepass == other.is_prepass
     }
 }
 
@@ -58,6 +62,7 @@ where
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.mesh_key.hash(state);
         self.bind_group_data.hash(state);
+        self.is_prepass.hash(state);
     }
 }
 
@@ -78,6 +83,7 @@ where
 pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
+    pub prepass_shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
 
     /// The layout of the material's bindings only.
@@ -137,10 +143,12 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
 
         let vertex_shader = resolve_shader(asset_server, M::vertex_shader(), "mesh.wgsl");
         let fragment_shader = resolve_shader(asset_server, M::fragment_shader(), "shading.wgsl");
+        let prepass_shader = resolve_shader(asset_server, ShaderRef::Default, "prepass.wgsl");
 
         InstancedMaterialPipeline {
             vertex_shader,
             fragment_shader,
+            prepass_shader,
             mesh_pipeline,
             material_layout,
             combined_layout,
@@ -186,8 +194,45 @@ where
 
         M::specialize(&mut descriptor, layout, key.bind_group_data)?;
 
-        descriptor.vertex.shader = self.vertex_shader.clone();
-        descriptor.fragment.as_mut().unwrap().shader = self.fragment_shader.clone();
+        if key.is_prepass {
+            descriptor.vertex.shader = self.prepass_shader.clone();
+
+            let mut targets = vec![];
+
+            if key.mesh_key.contains(MeshPipelineKey::NORMAL_PREPASS) {
+                targets.push(Some(ColorTargetState {
+                    format: TextureFormat::Rgb10a2Unorm,
+                    blend: None,
+                    write_mask: ColorWrites::ALL,
+                }));
+            }
+
+            if key
+                .mesh_key
+                .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
+            {
+                targets.push(Some(ColorTargetState {
+                    format: TextureFormat::Rg16Float,
+                    blend: None,
+                    write_mask: ColorWrites::ALL,
+                }));
+            }
+
+           let mut shader_defs = descriptor.vertex.shader_defs.clone();
+            if !targets.is_empty() {
+                shader_defs.push("PREPASS_FRAGMENT".into());
+            }
+
+            descriptor.fragment = Some(FragmentState {
+                shader: self.prepass_shader.clone(),
+                shader_defs: descriptor.vertex.shader_defs.clone(),
+                entry_point: Some("fragment".into()),
+                targets,
+            });
+        } else {
+            descriptor.vertex.shader = self.vertex_shader.clone();
+            descriptor.fragment.as_mut().unwrap().shader = self.fragment_shader.clone();
+        }
 
         descriptor.vertex.buffers.push(VertexBufferLayout {
             array_stride: size_of::<InstanceData>() as u64,

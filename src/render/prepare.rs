@@ -4,6 +4,7 @@ use crate::render::{
 };
 
 use bevy_ecs::prelude::*;
+use bevy_math::Mat4;
 use bevy_pbr::RenderMeshInstances;
 use bevy_render::{
     mesh::allocator::MeshAllocator,
@@ -81,6 +82,7 @@ pub(crate) fn prepare_instanced_bind_group<M>(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     pipeline: Res<InstancedMaterialPipeline<M>>,
+    mut previous_world_from_local: Local<Mat4>,
 ) where
     M: InstancedMaterial,
 {
@@ -89,10 +91,15 @@ pub(crate) fn prepare_instanced_bind_group<M>(
             continue;
         };
 
+        let world_from_local = gtf.to_matrix();
         let uniforms = InstanceUniforms {
-            world_from_local: gtf.to_matrix(),
+            world_from_local,
+            previous_world_from_local: *previous_world_from_local,
             ..instance_data.into()
         };
+
+        *previous_world_from_local = world_from_local;
+
         let contents = bytes_of(&uniforms);
 
         let buffer = uniform_buffer

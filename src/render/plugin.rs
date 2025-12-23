@@ -10,6 +10,7 @@ use std::marker::PhantomData;
 use bevy_app::{App, Plugin};
 use bevy_asset::{AssetApp, embedded_asset};
 use bevy_core_pipeline::core_3d::Opaque3d;
+use bevy_core_pipeline::prepass::Opaque3dPrepass;
 use bevy_ecs::prelude::*;
 use bevy_render::{
     Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
@@ -32,8 +33,9 @@ impl Plugin for InstancedMaterialCorePlugin {
 
         embedded_asset!(app, "mesh.wgsl");
         embedded_asset!(app, "shading.wgsl");
+        embedded_asset!(app, "prepass.wgsl");
 
-        app.add_plugins((ExtractComponentPlugin::<InstanceMaterialData>::default(),));
+        app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
 
@@ -70,6 +72,7 @@ where
 
         render_app
             .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
+            .add_render_command::<Opaque3dPrepass, DrawInstancedMaterial<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>()
             .add_systems(
                 Render,

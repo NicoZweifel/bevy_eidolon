@@ -94,6 +94,7 @@ pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
     pub world_from_local: Mat4,
+    pub previous_world_from_local: Mat4,
 }
 
 impl From<&InstanceMaterialData> for InstanceUniforms {

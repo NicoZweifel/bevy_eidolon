@@ -6,7 +6,7 @@
 #[path = "utils/example.rs"]
 mod example;
 
-use bevy_app::{App, AppExit, Startup, Update};
+use bevy_app::{App, AppExit, PostStartup, Startup, Update};
 use bevy_asset::{Assets, RenderAssetUsages};
 use bevy_camera::primitives::Aabb;
 use bevy_color::Color;
@@ -22,6 +22,7 @@ use bevy_utils::default;
 
 use example::*;
 
+use bevy_core_pipeline::prepass::DepthPrepass;
 use rand::{Rng, rng};
 use std::sync::Arc;
 
@@ -39,6 +40,7 @@ fn main() -> AppExit {
             GpuComputeCullPlugin,
         ))
         .add_systems(Startup, setup)
+        .add_systems(PostStartup, enable_depth_prepass)
         .add_systems(
             Update,
             (
@@ -236,6 +238,16 @@ fn stress_test_chunk_replacement(
             GpuCullCompute,
             aabb.clone(),
         ));
+    }
+}
+
+fn enable_depth_prepass(
+    mut commands: Commands,
+    cam_query: Query<Entity, With<bevy_camera::Camera3d>>,
+) {
+    for entity in &cam_query {
+        commands.entity(entity).insert(DepthPrepass);
+        println!("Depth Prepass Enabled on Camera!");
     }
 }
 
