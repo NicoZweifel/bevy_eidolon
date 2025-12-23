@@ -1,8 +1,16 @@
-#import bevy_pbr::mesh_view_bindings::view
 #import bevy_pbr::prepass_bindings
+
+#import bevy_pbr::render::View
+#import bevy_render::{
+    globals::Globals,
+}
+
 #import bevy_eidolon::render::bindings::instance_uniforms
 #import bevy_eidolon::render::utils
 #import bevy_eidolon::render::io_types::Vertex
+
+@group(0) @binding(0) var<uniform> view: View;
+@group(0) @binding(1) var<uniform> globals: Globals;
 
 struct PrepassVertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -97,12 +105,11 @@ fn fragment(
         if !is_front {
             normal = -normal;
         }
-
         out.normal_depth = vec4<f32>(normal * 0.5 + 0.5, 1.0);
     #endif
 
     #ifdef MOTION_VECTOR_PREPASS
-        let clip_position_t = view.unjittered_clip_from_world * in.world_position;
+        let clip_position_t = view.clip_from_world * in.world_position;
         let clip_position = clip_position_t.xy / clip_position_t.w;
 
         let previous_clip_position_t = prepass_bindings::previous_view_uniforms.clip_from_world * in.previous_world_position;

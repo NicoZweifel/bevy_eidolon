@@ -7,6 +7,7 @@ use crate::render::{
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use crate::render::draw::DrawInstancedPrepass;
 use bevy_app::{App, Plugin};
 use bevy_asset::{AssetApp, embedded_asset};
 use bevy_core_pipeline::core_3d::Opaque3d;
@@ -72,7 +73,7 @@ where
 
         render_app
             .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
-            .add_render_command::<Opaque3dPrepass, DrawInstancedMaterial<M>>()
+            .add_render_command::<Opaque3dPrepass, DrawInstancedPrepass<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>()
             .add_systems(
                 Render,

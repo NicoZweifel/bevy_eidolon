@@ -2,6 +2,7 @@ use crate::prelude::*;
 use bevy_ecs::system::{SystemParamItem, lifetimeless::*};
 use bevy_pbr::{
     RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
+    SetPrepassViewBindGroup, SetPrepassViewEmptyBindGroup,
 };
 use bevy_render::{
     mesh::{RenderMesh, RenderMeshBufferInfo, allocator::MeshAllocator},
@@ -14,6 +15,15 @@ pub type DrawInstancedMaterial<M> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshViewBindingArrayBindGroup<1>,
+    SetMeshBindGroup<2>,
+    SetInstancedCombinedBindGroup<3>,
+    DrawInstancedMaterialMesh<M>,
+);
+
+pub type DrawInstancedPrepass<M> = (
+    SetItemPipeline,
+    SetPrepassViewBindGroup<0>,
+    SetPrepassViewEmptyBindGroup<1>,
     SetMeshBindGroup<2>,
     SetInstancedCombinedBindGroup<3>,
     DrawInstancedMaterialMesh<M>,

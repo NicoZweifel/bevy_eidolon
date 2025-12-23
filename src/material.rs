@@ -30,6 +30,10 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
         ShaderRef::Default
     }
 
+    fn prepass_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+
     fn polygon_mode(&self) -> PolygonMode {
         PolygonMode::Fill
     }

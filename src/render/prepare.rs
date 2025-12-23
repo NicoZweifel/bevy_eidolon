@@ -5,7 +5,7 @@ use crate::render::{
 
 use bevy_ecs::prelude::*;
 use bevy_math::Mat4;
-use bevy_pbr::RenderMeshInstances;
+use bevy_pbr::{PreviousGlobalTransform, RenderMeshInstances};
 use bevy_render::{
     mesh::allocator::MeshAllocator,
     mesh::{RenderMesh, RenderMeshBufferInfo},
@@ -77,28 +77,31 @@ pub(crate) fn prepare_instanced_bind_group<M>(
         &InstanceMaterialData,
         &GlobalTransform,
         Option<&InstanceUniformBuffer>,
+        Option<&PreviousGlobalTransform>,
     )>,
     render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     pipeline: Res<InstancedMaterialPipeline<M>>,
-    mut previous_world_from_local: Local<Mat4>,
 ) where
     M: InstancedMaterial,
 {
-    for (entity, material_handle, instance_data, gtf, uniform_buffer) in &query {
+    for (entity, material_handle, instance_data, gtf, uniform_buffer, previous_tf) in &query
+    {
         let Some(prepared_material) = render_materials.get(&material_handle.0) else {
             continue;
         };
 
         let world_from_local = gtf.to_matrix();
+        let previous_world_from_local = previous_tf
+            .map(|tf| Mat4::from(tf.0))
+            .unwrap_or(world_from_local);
+
         let uniforms = InstanceUniforms {
             world_from_local,
-            previous_world_from_local: *previous_world_from_local,
+            previous_world_from_local,
             ..instance_data.into()
         };
-
-        *previous_world_from_local = world_from_local;
 
         let contents = bytes_of(&uniforms);
 

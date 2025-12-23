@@ -24,6 +24,7 @@ use bevy_render::{
     view::Msaa,
 };
 
+use crate::render::draw::DrawInstancedPrepass;
 use bevy_core_pipeline::prepass::{
     Opaque3dPrepass, OpaqueNoLightmap3dBatchSetKey, OpaqueNoLightmap3dBinKey,
 };
@@ -65,7 +66,7 @@ pub(crate) fn queue_instanced_material<M>(
 
     let draw_prepass = opaque_3d_prepass_draw_functions
         .read()
-        .id::<DrawInstancedMaterial<M>>();
+        .id::<DrawInstancedPrepass<M>>();
 
     for (view, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in &views {
         let Some(opaque_mask_phases) = opaque_render_phases.get_mut(&view.retained_view_entity)

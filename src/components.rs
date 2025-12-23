@@ -13,6 +13,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::prelude::InstancedMaterial;
 
+use bevy_pbr::PreviousGlobalTransform;
 use bevy_transform::prelude::GlobalTransform;
 use std::fmt;
 use std::hash::Hash;
@@ -60,14 +61,21 @@ impl fmt::Debug for InstanceMaterialData {
 }
 
 impl ExtractComponent for InstanceMaterialData {
-    type QueryData = (&'static Self, &'static GlobalTransform);
+    type QueryData = (
+        &'static Self,
+        &'static GlobalTransform,
+        Option<&'static PreviousGlobalTransform>,
+    );
     type QueryFilter = ();
-    type Out = (Self, GlobalTransform);
+    type Out = (Self, GlobalTransform, PreviousGlobalTransform);
 
     fn extract_component(
-        (data, transform): QueryItem<'_, '_, Self::QueryData>,
+        (data, tf, p_tf): QueryItem<'_, '_, Self::QueryData>,
     ) -> Option<Self::Out> {
-        Some((data.clone(), *transform))
+        let p_tf =
+            PreviousGlobalTransform(p_tf.map(|p| p.0.clone()).unwrap_or_else(|| tf.affine()));
+
+        Some((data.clone(), *tf, p_tf))
     }
 }
 

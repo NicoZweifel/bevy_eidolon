@@ -9,7 +9,6 @@ use bevy::{
     core_pipeline::tonemapping::Tonemapping, light::VolumetricLight, prelude::*,
     render::view::ColorGrading,
 };
-use bevy::anti_alias::taa::TemporalAntiAliasing;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::view::Hdr;
@@ -63,7 +62,6 @@ fn spawn_directional_light(mut cmd: Commands) {
 pub fn setup(mut cmd: Commands) {
     cmd.spawn((
         Camera::default(),
-        (Msaa::Off, TemporalAntiAliasing::default()),
         Hdr,
         Controller::default(),
         Camera3d::default(),

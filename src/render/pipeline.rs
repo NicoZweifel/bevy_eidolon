@@ -143,7 +143,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
 
         let vertex_shader = resolve_shader(asset_server, M::vertex_shader(), "mesh.wgsl");
         let fragment_shader = resolve_shader(asset_server, M::fragment_shader(), "shading.wgsl");
-        let prepass_shader = resolve_shader(asset_server, ShaderRef::Default, "prepass.wgsl");
+        let prepass_shader = resolve_shader(asset_server, M::prepass_shader(), "prepass.wgsl");
 
         InstancedMaterialPipeline {
             vertex_shader,
@@ -205,6 +205,12 @@ where
                     blend: None,
                     write_mask: ColorWrites::ALL,
                 }));
+            } else if key
+                .mesh_key
+                .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
+                || key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS)
+            {
+                targets.push(None);
             }
 
             if key
@@ -216,16 +222,27 @@ where
                     blend: None,
                     write_mask: ColorWrites::ALL,
                 }));
+            } else if key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS) {
+                targets.push(None);
             }
 
-           let mut shader_defs = descriptor.vertex.shader_defs.clone();
+            if key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS)
+                || key
+                    .mesh_key
+                    .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
+            {
+                targets.push(None);
+                targets.push(None);
+            }
+
+            let mut shader_defs = descriptor.vertex.shader_defs.clone();
             if !targets.is_empty() {
                 shader_defs.push("PREPASS_FRAGMENT".into());
             }
 
             descriptor.fragment = Some(FragmentState {
                 shader: self.prepass_shader.clone(),
-                shader_defs: descriptor.vertex.shader_defs.clone(),
+                shader_defs,
                 entry_point: Some("fragment".into()),
                 targets,
             });

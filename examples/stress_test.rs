@@ -25,6 +25,8 @@ use example::*;
 use bevy_core_pipeline::prepass::DepthPrepass;
 use rand::{Rng, rng};
 use std::sync::Arc;
+use bevy::anti_alias::taa::TemporalAntiAliasing;
+use bevy_render::prelude::Msaa;
 
 fn main() -> AppExit {
     App::new()
@@ -241,13 +243,17 @@ fn stress_test_chunk_replacement(
     }
 }
 
+// Enable Prepass / TAA to test it since this example shows artifacts quite well.
 fn enable_depth_prepass(
     mut commands: Commands,
     cam_query: Query<Entity, With<bevy_camera::Camera3d>>,
 ) {
     for entity in &cam_query {
-        commands.entity(entity).insert(DepthPrepass);
-        println!("Depth Prepass Enabled on Camera!");
+        commands.entity(entity).insert((DepthPrepass,
+               (Msaa::Off, TemporalAntiAliasing::default()),
+
+        ));
+        println!("Depth Prepass / TAA Enabled on Camera!");
     }
 }
 
