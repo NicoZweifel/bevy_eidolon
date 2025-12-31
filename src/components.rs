@@ -101,6 +101,7 @@ pub struct InstanceLodBuffer {
 pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
+    // TODO either remove this or mesh bindings
     pub world_from_local: Mat4,
     pub previous_world_from_local: Mat4,
 }
