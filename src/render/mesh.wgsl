@@ -12,7 +12,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var scale = vertex.i_pos_scale.w;
     var translation = vertex.i_pos_scale.xyz;
 
-    let final_matrix = utils::calculate_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
+    let final_matrix = utils::calc_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
 
     let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
 

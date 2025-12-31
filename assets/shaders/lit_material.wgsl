@@ -42,7 +42,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
         false
     );
 
-    pbr_input.V = pbr_functions::calculate_view(
+    pbr_input.V = pbr_functions::calc_view(
         in.world_position,
         pbr_input.is_orthographic
     );

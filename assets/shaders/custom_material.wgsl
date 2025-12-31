@@ -27,7 +27,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
                                                                                             * material.speed)
                                                                                             * material.amplitude;
 
-    let final_matrix = utils::calculate_instance_world_matrix(
+    let final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,
         vertex.i_rotation,
         instance_uniforms.world_from_local
