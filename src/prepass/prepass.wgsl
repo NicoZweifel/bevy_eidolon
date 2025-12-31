@@ -80,50 +80,33 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
 #import bevy_pbr::prepass_io::FragmentOutput
 
 @fragment
-fn fragment(
-    in: PrepassVertexOutput,
-    @builtin(front_facing) is_front: bool,
-) -> FragmentOutput {
-    #ifdef VISIBILITY_RANGE_DITHER
-        bevy_pbr::pbr_functions::visibility_range_dither(
-            in.clip_position,
-            in.visibility_range_dither
-        );
-    #endif
-
+fn fragment(in: PrepassVertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
 
-    #ifdef NORMAL_PREPASS
-        var normal = normalize(in.world_normal);
-        if !is_front {
-            normal = -normal;
-        }
-        out.normal = vec4<f32>(normal * 0.5 + 0.5, 1.0);
-    #endif
+#ifdef VISIBILITY_RANGE_DITHER
+    bevy_pbr::pbr_functions::visibility_range_dither(
+        in.clip_position,
+        in.visibility_range_dither
+    );
+#endif
 
-    #ifdef MOTION_VECTOR_PREPASS
-        let clip_position_t = view.unjittered_clip_from_world * in.world_position;
-        let clip_position = clip_position_t.xy / clip_position_t.w;
+#ifdef NORMAL_PREPASS
+    out.normal = vec4(in.world_normal * 0.5 + vec3(0.5), 1.0);
+#endif
 
-        let previous_clip_position_t = prepass_bindings::previous_view_uniforms.clip_from_world * in.previous_world_position;
-        let previous_clip_position = previous_clip_position_t.xy / previous_clip_position_t.w;
+#ifdef UNCLIPPED_DEPTH_ORTHO_EMULATION
+    out.frag_depth = in.unclipped_depth;
+#endif // UNCLIPPED_DEPTH_ORTHO_EMULATION
 
-        out.motion_vector = (clip_position - previous_clip_position) * vec2(0.5, -0.5);
-    #endif
+#ifdef MOTION_VECTOR_PREPASS
+    let clip_position_t = view.unjittered_clip_from_world * in.world_position;
+    let clip_position = clip_position_t.xy / clip_position_t.w;
+    let previous_clip_position_t = prepass_bindings::previous_view_uniforms.clip_from_world * in.previous_world_position;
+    let previous_clip_position = previous_clip_position_t.xy / previous_clip_position_t.w;
+
+    out.motion_vector = (clip_position - previous_clip_position) * vec2(0.5, -0.5);
+#endif // MOTION_VECTOR_PREPASS
 
     return out;
 }
-
-#else
-
-@fragment
-fn fragment(in: PrepassVertexOutput) {
-    #ifdef VISIBILITY_RANGE_DITHER
-        bevy_pbr::pbr_functions::visibility_range_dither(
-            in.clip_position,
-            in.visibility_range_dither
-        );
-    #endif
-}
-
 #endif // PREPASS_FRAGMENT
