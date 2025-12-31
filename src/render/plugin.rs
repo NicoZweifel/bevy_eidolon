@@ -12,7 +12,7 @@ use bevy_ecs::prelude::*;
 use bevy_platform::collections::hash_map::Entry;
 use bevy_render::sync_world::{MainEntity, MainEntityHashMap};
 use bevy_render::{
-    Extract, ExtractSchedule, Render, RenderApp, RenderStartup, RenderSystems,
+    Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
     extract_component::ExtractComponentPlugin, render_asset::RenderAssetPlugin,
     render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines,
 };
@@ -20,7 +20,6 @@ use bevy_shader::load_shader_library;
 
 use crate::prepass::InstancedPrepassPlugin;
 use bevy_ecs::component::Tick;
-use bevy_math::Mat4;
 use bevy_mesh::Mesh3d;
 use bevy_transform::prelude::GlobalTransform;
 use std::hash::Hash;
