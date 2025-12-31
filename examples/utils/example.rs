@@ -13,7 +13,7 @@ use bevy::{
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::view::Hdr;
-
+use bevy_show_prepass::{ShowPrepass, ShowPrepassPlugin};
 use camera_controller::*;
 use iyes_perf_ui::prelude::*;
 
@@ -35,6 +35,7 @@ impl Plugin for ExamplePlugin {
                 EntityCountDiagnosticsPlugin::default(),
                 SystemInformationDiagnosticsPlugin,
                 PerfUiPlugin,
+                ShowPrepassPlugin,
             ))
             .add_plugins((
                 EguiPlugin::default(),
@@ -42,7 +43,8 @@ impl Plugin for ExamplePlugin {
                     .run_if(|res: Res<ExamplePluginOptions>| res.show_inspector),
             ))
             .add_plugins(CameraControllerPlugin)
-            .add_systems(Startup, (setup, spawn_directional_light));
+            .add_systems(Startup, (setup, spawn_directional_light))
+            .add_systems(Update, choose_show_prepass_mode);
     }
 }
 
@@ -76,4 +78,20 @@ pub fn setup(mut cmd: Commands) {
     ));
 
     cmd.spawn(PerfUiDefaultEntries::default());
+}
+
+fn choose_show_prepass_mode(
+    mut commands: Commands,
+    camera: Single<Entity, With<Camera3d>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        commands.entity(*camera).remove::<ShowPrepass>();
+    } else if keyboard.just_pressed(KeyCode::Digit2) {
+        commands.entity(*camera).insert(ShowPrepass::Depth);
+    } else if keyboard.just_pressed(KeyCode::Digit3) {
+        commands.entity(*camera).insert(ShowPrepass::Normals);
+    } else if keyboard.just_pressed(KeyCode::Digit4) {
+        commands.entity(*camera).insert(ShowPrepass::MotionVectors);
+    }
 }

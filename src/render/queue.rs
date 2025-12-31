@@ -81,43 +81,20 @@ pub(crate) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, main_entity) in visible_entities.iter::<Mesh3d>() {
-            #[cfg(feature = "trace")]
-            trace!("queue_instanced_material: {:?}", entity);
-
-            let Some(material_instance) = render_material_instances.instances.get(main_entity)
-            else {
+        for (entity, main_entity, prepared_material, mesh, mesh_instance) in visible_entities
+            .iter::<Mesh3d>()
+            .filter_map(|(entity, main_entity)| {
                 #[cfg(feature = "trace")]
-                warn!("queue_instanced_material: no material for {:?}", entity);
-                continue;
-            };
+                trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
 
-            let Some(prepared_material) = render_materials.get(material_instance.asset_id.typed())
-            else {
-                #[cfg(feature = "trace")]
-                warn!(
-                    "queue_instanced_material: no prepared material for {:?}",
-                    entity
-                );
-                continue;
-            };
+                let material_instance = render_material_instances.instances.get(main_entity)?;
+                let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
+                let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
+                let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
 
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
-            else {
-                #[cfg(feature = "trace")]
-                warn!(
-                    "queue_instanced_material: no mesh instance for {:?}",
-                    entity
-                );
-                continue;
-            };
-
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                #[cfg(feature = "trace")]
-                warn!("queue_instanced_material: no mesh for {:?}", entity);
-                continue;
-            };
-
+                Some((entity, main_entity, prepared_material, mesh, mesh_instance))
+            })
+        {
             let key = InstancedMaterialPipelineKey {
                 mesh_key: view_key
                     | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),

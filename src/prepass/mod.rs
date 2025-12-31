@@ -11,7 +11,7 @@ use crate::render::{
     prepared_material::PreparedInstancedMaterial,
 };
 use bevy_app::{App, Plugin};
-use bevy_asset::{AssetServer, Handle, embedded_asset, load_embedded_asset};
+use bevy_asset::{AssetServer, Handle, embedded_asset};
 use bevy_core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
 use bevy_core_pipeline::prepass::{
     DepthPrepass, MotionVectorPrepass, NormalPrepass, Opaque3dPrepass, prepass_target_descriptors,
@@ -32,11 +32,10 @@ use bevy_render::{
     mesh::{RenderMesh, allocator::MeshAllocator},
     render_asset::RenderAssets,
     render_phase::{
-        BinnedRenderPhaseType, DrawFunctions, RenderCommand, RenderCommandResult,
-        TrackedRenderPass, ViewBinnedRenderPhases,
+        BinnedRenderPhaseType, DrawFunctions,
+        ViewBinnedRenderPhases,
     },
     render_resource::*,
-    sync_world::MainEntity,
     view::{ExtractedView, Msaa},
 };
 use bevy_shader::Shader;
@@ -86,7 +85,7 @@ pub struct InstancedPrepassPipeline<M: InstancedMaterial> {
 
     pub combined_layout: BindGroupLayout,
 
-    pub default_prepass_shader: Handle<Shader>,
+    pub prepass_shader: Handle<Shader>,
 
     pub _phantom: PhantomData<M>,
 }
@@ -110,7 +109,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
         let forward_pipeline = world.resource::<InstancedMaterialPipeline<M>>();
         let combined_layout = forward_pipeline.combined_layout.clone();
 
-        let default_prepass_shader = load_embedded_asset!(asset_server, "prepass.wgsl");
+        let prepass_shader = M::prepass_shader().resolve(asset_server, "prepass/prepass.wgsl");
 
         InstancedPrepassPipeline {
             view_layout_motion_vectors,
@@ -118,7 +117,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
             mesh_layouts,
             empty_layout,
             combined_layout,
-            default_prepass_shader,
+            prepass_shader,
             _phantom: PhantomData,
         }
     }
@@ -195,7 +194,7 @@ where
             label: Some("instanced_material_prepass_pipeline".into()),
             layout: bind_group_layouts,
             vertex: VertexState {
-                shader: self.default_prepass_shader.clone(),
+                shader: self.prepass_shader.clone(),
                 entry_point: Some("vertex".into()),
                 shader_defs: shader_defs.clone(),
                 buffers: vec![vertex_buffer_layout],
@@ -204,7 +203,7 @@ where
                 None
             } else {
                 Some(FragmentState {
-                    shader: self.default_prepass_shader.clone(),
+                    shader: self.prepass_shader.clone(),
                     shader_defs: shader_defs.clone(),
                     entry_point: Some("fragment".into()),
                     targets,
@@ -310,46 +309,20 @@ pub fn queue_instanced_material_prepass<M>(
         let mut opaque_phase = opaque_render_phases.get_mut(&view.retained_view_entity);
         // TODO let alpha_mask_phase = alpha_mask_render_phases.get_mut(&view.retained_view_entity);
 
-        for (entity, main_entity) in visible_entities.iter::<Mesh3d>() {
-            #[cfg(feature = "trace")]
-            trace!("queue_instanced_material_prepass: {:?}", entity);
-
-            let Some(material_instance) = render_material_instances.instances.get(main_entity)
-            else {
+        for (entity, main_entity, prepared_material, mesh, mesh_instance) in visible_entities
+            .iter::<Mesh3d>()
+            .filter_map(|(entity, main_entity)| {
                 #[cfg(feature = "trace")]
-                warn!(
-                    "queue_instanced_material_prepass: no material for {:?}",
-                    entity
-                );
-                continue;
-            };
+                trace!("queue_instanced_material_prepass: \n  - render: {entity:?}\n  - main: {main_entity:?}");
 
-            let Some(prepared_material) = render_materials.get(material_instance.asset_id.typed())
-            else {
-                #[cfg(feature = "trace")]
-                warn!(
-                    "queue_instanced_material_prepass: no prepared material for {:?}",
-                    entity
-                );
-                continue;
-            };
+                let material_instance = render_material_instances.instances.get(main_entity)?;
+                let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
+                let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
+                let mesh = render_meshes.get(mesh_instance.mesh_asset_id)?;
 
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
-            else {
-                #[cfg(feature = "trace")]
-                warn!(
-                    "queue_instanced_material_prepass: no mesh instance for {:?}",
-                    entity
-                );
-                continue;
-            };
-
-            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id) else {
-                #[cfg(feature = "trace")]
-                warn!("queue_instanced_material: no mesh for {:?}", entity);
-                continue;
-            };
-
+                Some((entity, main_entity, prepared_material, mesh, mesh_instance))
+            })
+        {
             let key = InstancedMaterialPipelineKey {
                 mesh_key: view_key
                     | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),

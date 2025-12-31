@@ -125,8 +125,8 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
             &material_entries,
         );
 
-        let vertex_shader = resolve_shader(asset_server, M::vertex_shader(), "mesh.wgsl");
-        let fragment_shader = resolve_shader(asset_server, M::fragment_shader(), "shading.wgsl");
+        let vertex_shader = M::vertex_shader().resolve(asset_server, "render/mesh.wgsl");
+        let fragment_shader = M::fragment_shader().resolve(asset_server, "render/shading.wgsl");
 
         InstancedMaterialPipeline {
             vertex_shader,
@@ -204,19 +204,5 @@ where
         });
 
         Ok(descriptor)
-    }
-}
-
-fn resolve_shader(
-    asset_server: &AssetServer,
-    shader_ref: ShaderRef,
-    default: impl Into<String>,
-) -> Handle<Shader> {
-    let name = default.into();
-    match shader_ref {
-        ShaderRef::Default => asset_server
-            .load(AssetPath::from_path_buf(embedded_path!(name)).with_source("embedded")),
-        ShaderRef::Handle(handle) => handle,
-        ShaderRef::Path(path) => asset_server.load(path),
     }
 }

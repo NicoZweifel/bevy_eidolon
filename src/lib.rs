@@ -61,9 +61,10 @@ pub mod components;
 
 pub mod cull;
 pub mod prepass;
+pub mod utils;
 
 pub mod prelude {
     pub use crate::{
-        components::*, cull::prelude::*, material::*, render::prelude::*, resources::*,
+        components::*, cull::prelude::*, material::*, render::prelude::*, resources::*, utils::*,
     };
 }
