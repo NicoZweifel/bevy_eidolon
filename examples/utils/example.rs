@@ -1,6 +1,7 @@
 #[path = "camera_controller.rs"]
 mod camera_controller;
 
+use bevy::anti_alias::taa::TemporalAntiAliasing;
 use bevy::diagnostic::*;
 use bevy::light::light_consts::lux::FULL_DAYLIGHT;
 use bevy::light::{DirectionalLightShadowMap, ShadowFilteringMethod};
@@ -64,6 +65,8 @@ pub fn setup(mut cmd: Commands) {
         Camera::default(),
         Hdr,
         Controller::default(),
+        Msaa::Off,
+        TemporalAntiAliasing::default(),
         Camera3d::default(),
         ColorGrading::default(),
         Bloom::NATURAL,

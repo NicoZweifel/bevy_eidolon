@@ -9,11 +9,15 @@ use crate::prelude::*;
 use bevy_app::prelude::*;
 use bevy_asset::embedded_asset;
 use bevy_ecs::prelude::*;
+use bevy_render::render_graph::RenderLabel;
 use bevy_render::{
     Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
     graph::CameraDriverLabel, render_graph::RenderGraph,
 };
 use bevy_shader::load_shader_library;
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
+pub struct InstancedMaterialComputeLabel;
 
 pub struct GpuComputeCullPlugin;
 

@@ -1,5 +1,6 @@
 use bevy_asset::{Asset, Handle};
 use bevy_color::{Color, ColorToComponents};
+use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
@@ -163,7 +164,7 @@ impl InstancedMaterialUniforms {
     }
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Deref, DerefMut)]
 #[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where

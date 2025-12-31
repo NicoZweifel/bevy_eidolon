@@ -19,12 +19,16 @@ use bevy_render::{
     render_phase::DrawFunctions,
     render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases},
     render_resource::*,
-    sync_world::MainEntity,
     view::ExtractedView,
     view::Msaa,
 };
 
+use bevy_mesh::Mesh3d;
+use bevy_render::view::RenderVisibleEntities;
 use std::hash::Hash;
+
+#[cfg(feature = "trace")]
+use tracing::*;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn queue_instanced_material<M>(
@@ -34,17 +38,15 @@ pub(crate) fn queue_instanced_material<M>(
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
+    render_material_instances: Res<RenderInstancedMaterialInstances>,
     render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
-    material_meshes: Query<
-        (Entity, &MainEntity, &InstancedMeshMaterial<M>),
-        With<InstanceMaterialData>,
-    >,
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
     mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
     ticks: SystemChangeTick,
     views: Query<(
         &ExtractedView,
+        &RenderVisibleEntities,
         &Msaa,
         Option<&DepthPrepass>,
         Option<&NormalPrepass>,
@@ -58,7 +60,9 @@ pub(crate) fn queue_instanced_material<M>(
         .read()
         .id::<DrawInstancedMaterial<M>>();
 
-    for (view, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in &views {
+    for (view, visible_entities, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in
+        &views
+    {
         let Some(opaque_mask_phases) = opaque_render_phases.get_mut(&view.retained_view_entity)
         else {
             continue;
@@ -77,15 +81,40 @@ pub(crate) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, main_entity, h_material) in &material_meshes {
+        for (entity, main_entity) in visible_entities.iter::<Mesh3d>() {
+            #[cfg(feature = "trace")]
+            trace!("queue_instanced_material: {:?}", entity);
+
+            let Some(material_instance) = render_material_instances.instances.get(main_entity)
+            else {
+                #[cfg(feature = "trace")]
+                warn!("queue_instanced_material: no material for {:?}", entity);
+                continue;
+            };
+
+            let Some(prepared_material) = render_materials.get(material_instance.asset_id.typed())
+            else {
+                #[cfg(feature = "trace")]
+                warn!(
+                    "queue_instanced_material: no prepared material for {:?}",
+                    entity
+                );
+                continue;
+            };
+
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
             else {
+                #[cfg(feature = "trace")]
+                warn!(
+                    "queue_instanced_material: no mesh instance for {:?}",
+                    entity
+                );
                 continue;
             };
+
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-            let Some(prepared_material) = render_materials.get(&h_material.0) else {
+                #[cfg(feature = "trace")]
+                warn!("queue_instanced_material: no mesh for {:?}", entity);
                 continue;
             };
 
@@ -101,11 +130,17 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
+            #[cfg(feature = "trace")]
+            trace!(
+                "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
+                vertex_slab, index_slab
+            );
+
             opaque_mask_phases.add(
                 Opaque3dBatchSetKey {
                     pipeline,
                     draw_function: draw_custom,
-                    material_bind_group_index: None,
+                    material_bind_group_index: None, // TODO
                     vertex_slab: vertex_slab.unwrap_or_default(),
                     index_slab,
                     lightmap_slab: None,
@@ -113,7 +148,7 @@ pub(crate) fn queue_instanced_material<M>(
                 Opaque3dBinKey {
                     asset_id: mesh_instance.mesh_asset_id.into(),
                 },
-                (entity, *main_entity),
+                (*entity, *main_entity),
                 mesh_instance.current_uniform_index,
                 BinnedRenderPhaseType::mesh(
                     mesh_instance.should_batch(),

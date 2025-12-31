@@ -14,18 +14,20 @@ use bytemuck::{Pod, Zeroable};
 use crate::prelude::InstancedMaterial;
 
 use bevy_transform::prelude::GlobalTransform;
+use derive_more::{From, Into};
 use std::fmt;
 use std::hash::Hash;
 use std::sync::Arc;
 
 /// Marker component to opt in to GPU-driven culling/preparation.
-#[derive(Component, Clone, Copy, Default, ExtractComponent)]
+#[derive(Component, Clone, Copy, Debug, Default, ExtractComponent, Reflect)]
+#[reflect(Component, Clone, Debug)]
 pub struct GpuCullCompute;
 
 /// Sets the material color.
 ///
 /// Corresponds to `instance_uniforms.color` in shaders.
-#[derive(Component, Clone, Copy, Debug, Reflect, Default)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Default, From, Into, Deref, DerefMut)]
 #[reflect(Component, Clone, Debug)]
 pub struct InstanceColor(pub Color);
 
@@ -71,6 +73,12 @@ impl ExtractComponent for InstanceMaterialData {
     }
 }
 
+#[derive(
+    Component, Deref, DerefMut, Default, Clone, Copy, Reflect, Debug, From, Into, ExtractComponent,
+)]
+#[reflect(Component, Clone, Debug)]
+pub struct InstanceHistory(pub Mat4);
+
 #[derive(Component)]
 pub struct InstanceBuffer {
     pub buffer: Buffer,
@@ -94,6 +102,7 @@ pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
     pub world_from_local: Mat4,
+    pub previous_world_from_local: Mat4,
 }
 
 impl From<&InstanceMaterialData> for InstanceUniforms {

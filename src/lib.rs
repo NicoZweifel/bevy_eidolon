@@ -60,6 +60,7 @@ pub mod render;
 pub mod components;
 
 pub mod cull;
+pub mod prepass;
 
 pub mod prelude {
     pub use crate::{

@@ -22,6 +22,10 @@ use bevy_utils::default;
 
 use example::*;
 
+use bevy::input::ButtonInput;
+use bevy::prelude::KeyCode;
+use bevy_camera::Camera3d;
+use bevy_show_prepass::{ShowPrepass, ShowPrepassPlugin};
 use rand::{Rng, rng};
 use std::sync::Arc;
 
@@ -37,6 +41,7 @@ fn main() -> AppExit {
             InstancedMaterialCorePlugin,
             InstancedMaterialPlugin::<StandardInstancedMaterial>::default(),
             GpuComputeCullPlugin,
+            ShowPrepassPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
@@ -44,6 +49,7 @@ fn main() -> AppExit {
             (
                 setup.run_if(resource_changed::<StressTestConfig>),
                 stress_test_chunk_replacement.run_if(not(resource_changed::<StressTestConfig>)),
+                choose_show_prepass_mode,
             ),
         )
         .run()
@@ -236,6 +242,22 @@ fn stress_test_chunk_replacement(
             GpuCullCompute,
             aabb.clone(),
         ));
+    }
+}
+
+fn choose_show_prepass_mode(
+    mut commands: Commands,
+    camera: Single<Entity, With<Camera3d>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        commands.entity(*camera).remove::<ShowPrepass>();
+    } else if keyboard.just_pressed(KeyCode::Digit2) {
+        commands.entity(*camera).insert(ShowPrepass::Depth);
+    } else if keyboard.just_pressed(KeyCode::Digit3) {
+        commands.entity(*camera).insert(ShowPrepass::Normals);
+    } else if keyboard.just_pressed(KeyCode::Digit4) {
+        commands.entity(*camera).insert(ShowPrepass::MotionVectors);
     }
 }
 

@@ -76,6 +76,7 @@ pub(crate) fn prepare_instanced_bind_group<M>(
         &InstanceMaterialData,
         &GlobalTransform,
         Option<&InstanceUniformBuffer>,
+        Option<&InstanceHistory>,
     )>,
     render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
     render_device: Res<RenderDevice>,
@@ -84,15 +85,19 @@ pub(crate) fn prepare_instanced_bind_group<M>(
 ) where
     M: InstancedMaterial,
 {
-    for (entity, material_handle, instance_data, gtf, uniform_buffer) in &query {
+    for (entity, material_handle, instance_data, gtf, uniform_buffer, instance_history) in &query {
         let Some(prepared_material) = render_materials.get(&material_handle.0) else {
             continue;
         };
 
+        let world_from_local = gtf.to_matrix();
+
         let uniforms = InstanceUniforms {
-            world_from_local: gtf.to_matrix(),
+            world_from_local,
+            previous_world_from_local: instance_history.map(|x| **x).unwrap_or(world_from_local),
             ..instance_data.into()
         };
+
         let contents = bytes_of(&uniforms);
 
         let buffer = uniform_buffer

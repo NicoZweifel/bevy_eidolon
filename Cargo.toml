@@ -24,9 +24,12 @@ bevy_app= { version = "0.17", default-features = false }
 bevy_mesh= { version = "0.17", default-features = false }
 bevy_shader= { version = "0.17", default-features = false }
 bevy_transform= { version = "0.17", default-features = false }
+bevy_platform= { version = "0.17", default-features = false }
+
 
 bytemuck = "1.24"
 bitflags = "2.10"
+derive_more = "2.1.1"
 
 tracing = { version = "0.1", default-features = false, optional = true }
 
@@ -51,6 +54,7 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
+bevy_show_prepass = "0.1.1"
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
 # In some cases they may still signal poor code quality however, so consider commenting out these lines.

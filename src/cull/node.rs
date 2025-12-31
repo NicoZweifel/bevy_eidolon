@@ -6,7 +6,7 @@ use bevy_render::{
 };
 
 #[cfg(feature = "trace")]
-use tracing::{error, trace, warn};
+use tracing::*;
 
 use crate::components::{
     GpuDrawIndexedIndirect, InstancedComputeBindGroup, InstancedComputeSourceBuffer,
