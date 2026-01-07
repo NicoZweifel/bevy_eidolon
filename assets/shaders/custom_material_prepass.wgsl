@@ -41,7 +41,7 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
     var out: PrepassVertexOutput;
 
     var local_position = vertex.position;
-    
+
     let TAU = 6.283185307;
     let time_phase = (globals.time * material.speed) % TAU;
 
