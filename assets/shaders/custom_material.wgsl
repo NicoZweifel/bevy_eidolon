@@ -23,9 +23,10 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     var local_position = vertex.position;
 
-    local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency + globals.time
-                                                                                            * material.speed)
-                                                                                            * material.amplitude;
+    local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
+                     + globals.time
+                     * material.speed)
+                     * material.amplitude;
 
     let final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,

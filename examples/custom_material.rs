@@ -85,6 +85,10 @@ impl InstancedMaterial for CustomMaterial {
         "shaders/custom_material.wgsl".into()
     }
 
+    fn prepass_shader() -> ShaderRef {
+       "shaders/custom_material_prepass.wgsl".into()
+    }
+
     fn specialize(
         descriptor: &mut RenderPipelineDescriptor,
         _layout: &MeshVertexBufferLayoutRef,
