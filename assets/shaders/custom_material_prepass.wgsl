@@ -41,10 +41,12 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
     var out: PrepassVertexOutput;
 
     var local_position = vertex.position;
+    
+    let TAU = 6.283185307;
+    let time_phase = (globals.time * material.speed) % TAU;
 
     local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
-                     + globals.time
-                     * material.speed)
+                     + time_phase)
                      * material.amplitude;
 
     let final_matrix = utils::calc_instance_world_matrix(
@@ -55,9 +57,10 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
 
     let world_position = final_matrix * vec4<f32>(local_position, 1.0);
     var prev_local_position = vertex.position;
+    let prev_time_phase = ((globals.time - globals.delta_time) * material.speed) % TAU;
+
     prev_local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
-                     + (globals.time - globals.delta_time)
-                     * material.speed)
+                     + prev_time_phase)
                      * material.amplitude;
 
     let prev_final_matrix = utils::calc_instance_world_matrix(

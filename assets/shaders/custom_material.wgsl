@@ -23,9 +23,11 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     var local_position = vertex.position;
 
+    let TAU = 6.283185307;
+    let time_phase = (globals.time * material.speed) % TAU;
+
     local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
-                     + globals.time
-                     * material.speed)
+                     + time_phase)
                      * material.amplitude;
 
     let final_matrix = utils::calc_instance_world_matrix(
