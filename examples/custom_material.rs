@@ -86,7 +86,7 @@ impl InstancedMaterial for CustomMaterial {
     }
 
     fn prepass_shader() -> ShaderRef {
-       "shaders/custom_material_prepass.wgsl".into()
+        "shaders/custom_material_prepass.wgsl".into()
     }
 
     fn specialize(

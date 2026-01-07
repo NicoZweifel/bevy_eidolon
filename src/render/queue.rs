@@ -85,7 +85,9 @@ pub(crate) fn queue_instanced_material<M>(
             .iter::<Mesh3d>()
             .filter_map(|(entity, main_entity)| {
                 #[cfg(feature = "trace")]
-                trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
+                trace!(
+                    "queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}"
+                );
 
                 let material_instance = render_material_instances.instances.get(main_entity)?;
                 let prepared_material = render_materials.get(material_instance.asset_id.typed())?;

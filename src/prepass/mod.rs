@@ -31,10 +31,7 @@ use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
     mesh::{RenderMesh, allocator::MeshAllocator},
     render_asset::RenderAssets,
-    render_phase::{
-        BinnedRenderPhaseType, DrawFunctions,
-        ViewBinnedRenderPhases,
-    },
+    render_phase::{BinnedRenderPhaseType, DrawFunctions, ViewBinnedRenderPhases},
     render_resource::*,
     view::{ExtractedView, Msaa},
 };
@@ -137,6 +134,7 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut shader_defs = Vec::new();
         shader_defs.push("PREPASS_PIPELINE".into());
+        shader_defs.push("VISIBILITY_RANGE_DITHER".into());
 
         let mut vertex_attributes = Vec::new();
         if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_POSITION) {
@@ -227,6 +225,8 @@ where
             },
             ..default()
         };
+
+        M::specialize(&mut descriptor, layout, key.bind_group_data)?;
 
         descriptor.vertex.buffers.push(VertexBufferLayout {
             array_stride: size_of::<InstanceData>() as u64,
