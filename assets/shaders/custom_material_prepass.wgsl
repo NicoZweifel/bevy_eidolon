@@ -54,13 +54,18 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
     );
 
     let world_position = final_matrix * vec4<f32>(local_position, 1.0);
+    var prev_local_position = vertex.position;
+    prev_local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
+                     + (globals.time - globals.delta_time)
+                     * material.speed)
+                     * material.amplitude;
 
     let prev_final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,
         vertex.i_rotation,
         instance_uniforms.previous_world_from_local
     );
-    let previous_world_position = prev_final_matrix * vec4<f32>(local_position, 1.0);
+    let previous_world_position = prev_final_matrix * vec4<f32>(prev_local_position, 1.0);
 
     out.world_position = world_position;
     out.previous_world_position = previous_world_position;
