@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::render::prepared_material::PreparedInstancedMaterial;
 use bevy_ecs::system::{SystemParamItem, lifetimeless::*};
 use bevy_pbr::{
     RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
@@ -14,32 +15,61 @@ pub type DrawInstancedMaterial<M> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshViewBindingArrayBindGroup<1>,
-    SetMeshBindGroup<2>,
-    SetInstancedCombinedBindGroup<3>,
+    SetInstanceBindGroup<2>,
+    SetMaterialBindGroup<M, 3>,
     DrawInstancedMaterialMesh<M>,
 );
 
-pub struct SetInstancedCombinedBindGroup<const I: usize>;
+pub struct SetInstanceBindGroup<const I: usize>;
 
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstancedCombinedBindGroup<I> {
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetInstanceBindGroup<I> {
     type Param = ();
     type ViewQuery = ();
-    type ItemQuery = Read<InstancedCombinedBindGroup>;
+    type ItemQuery = Read<InstanceBindGroup>;
 
     #[inline]
     fn render<'w>(
         _item: &P,
         _view: (),
-        item: Option<&'w InstancedCombinedBindGroup>,
+        item: Option<&'w InstanceBindGroup>,
         _param: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(combined_bind_group) = item else {
+        let Some(bind_group) = item else {
             return RenderCommandResult::Skip;
         };
 
-        pass.set_bind_group(I, &combined_bind_group.0, &[]);
+        pass.set_bind_group(I, &bind_group.0, &[]);
 
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetMaterialBindGroup<M: InstancedMaterial, const I: usize>(PhantomData<M>);
+
+impl<P: PhaseItem, M: InstancedMaterial, const I: usize> RenderCommand<P>
+    for SetMaterialBindGroup<M, I>
+{
+    type Param = SRes<RenderAssets<PreparedInstancedMaterial<M>>>;
+    type ViewQuery = ();
+    type ItemQuery = Read<InstancedMeshMaterial<M>>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: (),
+        material_handle: Option<&'w InstancedMeshMaterial<M>>,
+        materials: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let Some(material_handle) = material_handle else {
+            return RenderCommandResult::Skip;
+        };
+        let Some(material) = materials.into_inner().get(&material_handle.0) else {
+            return RenderCommandResult::Skip;
+        };
+
+        pass.set_bind_group(I, &material.bind_group, &[]);
         RenderCommandResult::Success
     }
 }

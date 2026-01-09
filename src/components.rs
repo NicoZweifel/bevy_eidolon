@@ -31,6 +31,12 @@ pub struct GpuCullCompute;
 #[reflect(Component, Clone, Debug)]
 pub struct InstanceColor(pub Color);
 
+impl InstanceColor {
+    pub fn new(color: impl Into<Color>) -> Self {
+        Self(color.into())
+    }
+}
+
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 #[repr(C)]
 pub struct InstanceData {
@@ -39,7 +45,8 @@ pub struct InstanceData {
 
     pub rotation: f32,
     pub index: u32,
-    pub _padding: [u32; 2],
+    pub batch_id: u32,
+    pub seed: u32,
 }
 
 #[derive(Component, Clone, Reflect)]
@@ -83,6 +90,7 @@ pub struct InstanceHistory(pub Mat4);
 pub struct InstanceBuffer {
     pub buffer: Buffer,
     pub length: usize,
+    pub capacity: u32,
 }
 
 #[derive(Component)]
@@ -117,7 +125,7 @@ impl From<&InstanceMaterialData> for InstanceUniforms {
 }
 
 #[derive(Component)]
-pub struct InstancedCombinedBindGroup(pub BindGroup);
+pub struct InstanceBindGroup(pub BindGroup);
 
 #[derive(Component)]
 pub struct InstanceUniformBuffer {
@@ -128,6 +136,7 @@ pub struct InstanceUniformBuffer {
 pub struct InstancedComputeSourceBuffer {
     pub buffer: Buffer,
     pub count: u32,
+    pub capacity: u32,
 }
 
 #[derive(Component)]

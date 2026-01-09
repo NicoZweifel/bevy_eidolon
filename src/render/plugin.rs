@@ -8,7 +8,8 @@ use bevy_app::{App, Plugin, PreUpdate};
 use bevy_asset::{AssetApp, UntypedAssetId, embedded_asset};
 use bevy_camera::prelude::ViewVisibility;
 use bevy_core_pipeline::core_3d::Opaque3d;
-use bevy_ecs::prelude::*;
+use bevy_ecs::{component::Tick, prelude::*};
+use bevy_mesh::Mesh3d;
 use bevy_platform::collections::hash_map::Entry;
 use bevy_render::sync_world::{MainEntity, MainEntityHashMap};
 use bevy_render::{
@@ -17,11 +18,10 @@ use bevy_render::{
     render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines,
 };
 use bevy_shader::load_shader_library;
+use bevy_transform::prelude::GlobalTransform;
 
 use crate::prepass::InstancedPrepassPlugin;
-use bevy_ecs::component::Tick;
-use bevy_mesh::Mesh3d;
-use bevy_transform::prelude::GlobalTransform;
+
 use std::hash::Hash;
 use std::marker::PhantomData;
 

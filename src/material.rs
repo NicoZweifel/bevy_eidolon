@@ -6,7 +6,6 @@ use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
 use bevy_render::{
-    batching::NoAutomaticBatching,
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
         extract_component::ExtractComponent,
@@ -32,6 +31,10 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
     }
     fn prepass_shader() -> ShaderRef {
         ShaderRef::Default
+    }
+
+    fn disable_prepass(&self) -> bool {
+        false
     }
 
     fn polygon_mode(&self) -> PolygonMode {
@@ -73,6 +76,7 @@ pub struct StandardInstancedMaterial {
     pub debug_color: Color,
     pub polygon_mode: PolygonMode,
     pub double_sided: bool,
+    pub disable_prepass: bool,
 }
 
 impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
@@ -101,6 +105,10 @@ impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
 }
 
 impl InstancedMaterial for StandardInstancedMaterial {
+    fn disable_prepass(&self) -> bool {
+        self.disable_prepass
+    }
+
     fn polygon_mode(&self) -> PolygonMode {
         self.polygon_mode
     }
@@ -168,7 +176,6 @@ impl InstancedMaterialUniforms {
 }
 
 #[derive(Component, Clone, Debug, Deref, DerefMut)]
-#[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;

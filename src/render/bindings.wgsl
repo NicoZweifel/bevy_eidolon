@@ -2,5 +2,5 @@
 
 #import bevy_eidolon::render::types::{MaterialUniforms, InstanceUniforms}
 
+@group(2) @binding(0) var<uniform> instance_uniforms: InstanceUniforms;
 @group(3) @binding(0) var<uniform> material: MaterialUniforms;
-@group(3) @binding(100) var<uniform> instance_uniforms: InstanceUniforms;
