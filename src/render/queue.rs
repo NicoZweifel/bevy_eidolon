@@ -81,7 +81,7 @@ pub(crate) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, main_entity, prepared_material, mesh, mesh_instance, material_instance) in visible_entities
+        for (entity, main_entity, prepared_material, mesh, mesh_instance) in visible_entities
             .iter::<Mesh3d>()
             .filter_map(|(entity, main_entity)| {
                 #[cfg(feature = "trace")]
@@ -93,9 +93,8 @@ pub(crate) fn queue_instanced_material<M>(
                 let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
                 let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
                 let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
-               let material_instance = render_material_instances.instances.get(main_entity)?;
 
-                Some((entity, main_entity, prepared_material, mesh, mesh_instance, material_instance))
+                Some((entity, main_entity, prepared_material, mesh, mesh_instance))
             })
         {
             let key = InstancedMaterialPipelineKey {
@@ -110,7 +109,10 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
-           let material_instance = render_material_instances.instances.get(main_entity).unwrap();
+            let material_instance = render_material_instances
+                .instances
+                .get(main_entity)
+                .unwrap();
             let mut hasher = std::collections::hash_map::DefaultHasher::new();
             material_instance.asset_id.hash(&mut hasher);
             let material_index = hasher.finish() as u32;
@@ -125,7 +127,7 @@ pub(crate) fn queue_instanced_material<M>(
                 Opaque3dBatchSetKey {
                     pipeline,
                     draw_function: draw_custom,
-                   material_bind_group_index: Some(material_index),
+                    material_bind_group_index: Some(material_index),
                     vertex_slab: vertex_slab.unwrap_or_default(),
                     index_slab,
                     lightmap_slab: None,

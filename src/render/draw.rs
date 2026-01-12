@@ -1,9 +1,7 @@
 use crate::prelude::*;
 use crate::render::prepared_material::PreparedInstancedMaterial;
 use bevy_ecs::system::{SystemParamItem, lifetimeless::*};
-use bevy_pbr::{
-    RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
-};
+use bevy_pbr::{RenderMeshInstances, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup};
 use bevy_render::{
     mesh::{RenderMesh, RenderMeshBufferInfo, allocator::MeshAllocator},
     render_asset::RenderAssets,
