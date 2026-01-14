@@ -25,7 +25,7 @@ use bevy_render::{
 
 use bevy_mesh::Mesh3d;
 use bevy_render::view::RenderVisibleEntities;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 #[cfg(feature = "trace")]
 use tracing::*;
@@ -85,7 +85,9 @@ pub(crate) fn queue_instanced_material<M>(
             .iter::<Mesh3d>()
             .filter_map(|(entity, main_entity)| {
                 #[cfg(feature = "trace")]
-                trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
+                trace!(
+                    "queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}"
+                );
 
                 let material_instance = render_material_instances.instances.get(main_entity)?;
                 let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
@@ -107,6 +109,14 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
+            let material_instance = render_material_instances
+                .instances
+                .get(main_entity)
+                .unwrap();
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            material_instance.asset_id.hash(&mut hasher);
+            let material_index = hasher.finish() as u32;
+
             #[cfg(feature = "trace")]
             trace!(
                 "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
@@ -117,7 +127,7 @@ pub(crate) fn queue_instanced_material<M>(
                 Opaque3dBatchSetKey {
                     pipeline,
                     draw_function: draw_custom,
-                    material_bind_group_index: None, // TODO
+                    material_bind_group_index: Some(material_index),
                     vertex_slab: vertex_slab.unwrap_or_default(),
                     index_slab,
                     lightmap_slab: None,

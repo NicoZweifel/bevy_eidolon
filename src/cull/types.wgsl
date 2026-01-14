@@ -4,6 +4,8 @@ struct InstanceData {
     pos_and_scale: vec4<f32>,
     rotation: f32,
     index: u32,
+    batch_id: u32,
+    seed: u32,
 }
 
 struct DrawIndexedIndirectArgs {

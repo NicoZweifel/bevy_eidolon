@@ -4,7 +4,7 @@ pub mod prelude {}
 use tracing::*;
 
 use crate::prelude::*;
-use crate::render::draw::SetInstancedCombinedBindGroup;
+use crate::render::draw::{SetInstanceBindGroup, SetMaterialBindGroup};
 use crate::render::{
     draw::DrawInstancedMaterialMesh,
     pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
@@ -22,7 +22,7 @@ use bevy_ecs::system::SystemChangeTick;
 use bevy_mesh::{Mesh3d, MeshVertexBufferLayoutRef, VertexBufferLayout};
 use bevy_pbr::{
     MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline, RenderMeshInstances,
-    SetMeshBindGroup, SetPrepassViewBindGroup, SetPrepassViewEmptyBindGroup, init_prepass_pipeline,
+    SetPrepassViewBindGroup, SetPrepassViewEmptyBindGroup, init_prepass_pipeline,
 };
 use bevy_render::render_phase::{AddRenderCommand, SetItemPipeline};
 use bevy_render::view::RenderVisibleEntities;
@@ -31,10 +31,7 @@ use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
     mesh::{RenderMesh, allocator::MeshAllocator},
     render_asset::RenderAssets,
-    render_phase::{
-        BinnedRenderPhaseType, DrawFunctions,
-        ViewBinnedRenderPhases,
-    },
+    render_phase::{BinnedRenderPhaseType, DrawFunctions, ViewBinnedRenderPhases},
     render_resource::*,
     view::{ExtractedView, Msaa},
 };
@@ -83,7 +80,8 @@ pub struct InstancedPrepassPipeline<M: InstancedMaterial> {
     pub empty_layout: BindGroupLayout,
     pub mesh_layouts: MeshLayouts,
 
-    pub combined_layout: BindGroupLayout,
+    pub instance_layout: BindGroupLayout,
+    pub material_layout: BindGroupLayout,
 
     pub prepass_shader: Handle<Shader>,
 
@@ -107,7 +105,8 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
         let mesh_layouts = mesh_pipeline.mesh_layouts.clone();
 
         let forward_pipeline = world.resource::<InstancedMaterialPipeline<M>>();
-        let combined_layout = forward_pipeline.combined_layout.clone();
+        let instance_layout = forward_pipeline.instance_layout.clone();
+        let material_layout = forward_pipeline.material_layout.clone();
 
         let prepass_shader = M::prepass_shader().resolve(asset_server, "prepass/prepass.wgsl");
 
@@ -116,7 +115,8 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
             view_layout_no_motion_vectors,
             mesh_layouts,
             empty_layout,
-            combined_layout,
+            instance_layout,
+            material_layout,
             prepass_shader,
             _phantom: PhantomData,
         }
@@ -137,6 +137,7 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut shader_defs = Vec::new();
         shader_defs.push("PREPASS_PIPELINE".into());
+        shader_defs.push("VISIBILITY_RANGE_DITHER".into());
 
         let mut vertex_attributes = Vec::new();
         if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_POSITION) {
@@ -171,8 +172,8 @@ where
         let bind_group_layouts = vec![
             view_layout,
             self.empty_layout.clone(),
-            self.mesh_layouts.model_only.clone(),
-            self.combined_layout.clone(),
+            self.instance_layout.clone(),
+            self.material_layout.clone(),
         ];
 
         let mut targets = prepass_target_descriptors(
@@ -228,6 +229,8 @@ where
             ..default()
         };
 
+        M::specialize(&mut descriptor, layout, key.bind_group_data)?;
+
         descriptor.vertex.buffers.push(VertexBufferLayout {
             array_stride: size_of::<InstanceData>() as u64,
             step_mode: VertexStepMode::Instance,
@@ -250,6 +253,22 @@ where
                     offset: VertexFormat::Float32x4.size() + VertexFormat::Float32.size(),
                     shader_location: 10,
                 },
+                // Batch ID
+                VertexAttribute {
+                    format: VertexFormat::Uint32,
+                    offset: VertexFormat::Float32x4.size()
+                        + VertexFormat::Float32.size()
+                        + VertexFormat::Uint32.size(),
+                    shader_location: 11,
+                },
+                // Seed
+                VertexAttribute {
+                    format: VertexFormat::Uint32,
+                    offset: VertexFormat::Float32x4.size()
+                        + VertexFormat::Float32.size()
+                        + VertexFormat::Uint32.size() * 2,
+                    shader_location: 12,
+                },
             ],
         });
 
@@ -260,7 +279,6 @@ where
 #[allow(clippy::too_many_arguments)]
 pub fn queue_instanced_material_prepass<M>(
     opaque_draw_functions: Res<DrawFunctions<Opaque3dPrepass>>,
-    // TODO alpha_mask_draw_functions: Res<DrawFunctions<AlphaMask3dPrepass>>,
     prepass_pipeline: Res<InstancedPrepassPipeline<M>>,
     mut pipelines: ResMut<SpecializedMeshPipelines<InstancedPrepassPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
@@ -271,7 +289,6 @@ pub fn queue_instanced_material_prepass<M>(
     mesh_allocator: Res<MeshAllocator>,
     gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
     mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3dPrepass>>,
-    // TODO mut alpha_mask_render_phases: ResMut<ViewBinnedRenderPhases<AlphaMask3dPrepass>>,
     views: Query<(
         &ExtractedView,
         &RenderVisibleEntities,
@@ -286,7 +303,6 @@ pub fn queue_instanced_material_prepass<M>(
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     let draw_opaque = opaque_draw_functions.read().id::<DrawInstancedPrepass<M>>();
-    // TODO let draw_alpha_mask = alpha_mask_draw_functions.read().id::<DrawInstancedPrepass<M>>();
 
     for (view, visible_entities, msaa, depth_prepass, normal_prepass, motion_vector_prepass) in
         &views
@@ -307,7 +323,6 @@ pub fn queue_instanced_material_prepass<M>(
         }
 
         let mut opaque_phase = opaque_render_phases.get_mut(&view.retained_view_entity);
-        // TODO let alpha_mask_phase = alpha_mask_render_phases.get_mut(&view.retained_view_entity);
 
         for (entity, main_entity, prepared_material, mesh, mesh_instance) in visible_entities
             .iter::<Mesh3d>()
@@ -317,15 +332,21 @@ pub fn queue_instanced_material_prepass<M>(
 
                 let material_instance = render_material_instances.instances.get(main_entity)?;
                 let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
+                if prepared_material.disable_prepass{
+                   return None;
+                };
                 let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
                 let mesh = render_meshes.get(mesh_instance.mesh_asset_id)?;
 
                 Some((entity, main_entity, prepared_material, mesh, mesh_instance))
             })
         {
+
+            let mesh_key = view_key
+                | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+
             let key = InstancedMaterialPipelineKey {
-                mesh_key: view_key
-                    | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
+                mesh_key,
                 bind_group_data: prepared_material.key.clone(),
             };
 
@@ -355,8 +376,6 @@ pub fn queue_instanced_material_prepass<M>(
                     ticks.this_run(),
                 );
             }
-
-            // TODO AlphaMask
         }
     }
 }
@@ -365,7 +384,7 @@ pub type DrawInstancedPrepass<M> = (
     SetItemPipeline,
     SetPrepassViewBindGroup<0>,
     SetPrepassViewEmptyBindGroup<1>,
-    SetMeshBindGroup<2>,
-    SetInstancedCombinedBindGroup<3>,
+    SetInstanceBindGroup<2>,
+    SetMaterialBindGroup<M, 3>,
     DrawInstancedMaterialMesh<M>,
 );

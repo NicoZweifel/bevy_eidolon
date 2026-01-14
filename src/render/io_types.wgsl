@@ -28,6 +28,8 @@ struct Vertex {
     @location(8) i_pos_scale: vec4<f32>,
     @location(9) i_rotation: f32,
     @location(10) i_index: u32,
+    @location(11) i_batch_id: u32,
+    @location(12) i_seed: u32,
 };
 
 struct VertexOutput {

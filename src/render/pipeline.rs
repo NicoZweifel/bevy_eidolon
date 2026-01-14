@@ -13,7 +13,6 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 use crate::prelude::*;
-use crate::render::prepare::INSTANCE_BINDING_INDEX;
 
 pub struct InstancedMaterialPipelineKey<M: InstancedMaterial> {
     pub mesh_key: MeshPipelineKey,
@@ -79,11 +78,8 @@ pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
-
-    /// The final layout including Material bindings + Instance Uniforms.
-    /// Used in the render pipeline.
-    pub combined_layout: BindGroupLayout,
-
+    pub instance_layout: BindGroupLayout,
+    pub material_layout: BindGroupLayout,
     pub _phantom: PhantomData<M>,
 }
 
@@ -93,36 +89,24 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
         let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
 
-        let mut material_entries = M::bind_group_layout_entries(render_device, false);
-        if material_entries
-            .iter()
-            .any(|e| e.binding == INSTANCE_BINDING_INDEX)
-        {
-            panic!(
-                "InstancedMaterial {} uses reserved binding slot {}!",
-                std::any::type_name::<M>(),
-                INSTANCE_BINDING_INDEX
-            );
-        }
-
-        material_entries.push(BindGroupLayoutEntry {
-            binding: INSTANCE_BINDING_INDEX,
-            visibility: ShaderStages::VERTEX_FRAGMENT,
-            ty: BindingType::Buffer {
-                ty: BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: NonZeroU64::new(size_of::<InstanceUniforms>() as u64),
-            },
-            count: None,
-        });
-
-        let combined_layout = render_device.create_bind_group_layout(
-            format!(
-                "instanced_material_combined_layout_{}",
-                std::any::type_name::<M>()
-            )
-            .as_str(),
+        let material_entries = M::bind_group_layout_entries(render_device, false);
+        let material_layout = render_device.create_bind_group_layout(
+            format!("instanced_material_layout_{}", std::any::type_name::<M>()).as_str(),
             &material_entries,
+        );
+
+        let instance_layout = render_device.create_bind_group_layout(
+            "instanced_material_instance_layout",
+            &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: NonZeroU64::new(size_of::<InstanceUniforms>() as u64),
+                },
+                count: None,
+            }],
         );
 
         let vertex_shader = M::vertex_shader().resolve(asset_server, "render/mesh.wgsl");
@@ -132,7 +116,8 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
             vertex_shader,
             fragment_shader,
             mesh_pipeline,
-            combined_layout,
+            instance_layout,
+            material_layout,
             _phantom: PhantomData,
         }
     }
@@ -152,7 +137,13 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
 
-        descriptor.layout.push(self.combined_layout.clone());
+        if descriptor.layout.len() > 2 {
+            descriptor.layout[2] = self.instance_layout.clone();
+        } else {
+            descriptor.layout.push(self.instance_layout.clone());
+        }
+
+        descriptor.layout.push(self.material_layout.clone());
 
         if let Some(ds) = descriptor.depth_stencil.as_mut() {
             ds.depth_write_enabled = true;
@@ -199,6 +190,22 @@ where
                     format: VertexFormat::Uint32,
                     offset: VertexFormat::Float32x4.size() + VertexFormat::Float32.size(),
                     shader_location: 10,
+                },
+                // Batch ID
+                VertexAttribute {
+                    format: VertexFormat::Uint32,
+                    offset: VertexFormat::Float32x4.size()
+                        + VertexFormat::Float32.size()
+                        + VertexFormat::Uint32.size(),
+                    shader_location: 11,
+                },
+                // Seed
+                VertexAttribute {
+                    format: VertexFormat::Uint32,
+                    offset: VertexFormat::Float32x4.size()
+                        + VertexFormat::Float32.size()
+                        + VertexFormat::Uint32.size() * 2,
+                    shader_location: 12,
                 },
             ],
         });
