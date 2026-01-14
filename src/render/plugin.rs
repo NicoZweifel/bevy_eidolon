@@ -34,6 +34,7 @@ pub struct InstancedMaterialCorePlugin;
 impl Plugin for InstancedMaterialCorePlugin {
     fn build(&self, app: &mut App) {
         load_shader_library!(app, "types.wgsl");
+        load_shader_library!(app, "constants.wgsl");
         load_shader_library!(app, "io_types.wgsl");
         load_shader_library!(app, "bindings.wgsl");
         load_shader_library!(app, "utils.wgsl");

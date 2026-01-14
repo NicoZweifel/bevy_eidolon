@@ -5,6 +5,8 @@
 #import bevy_eidolon::render::utils
 #import bevy_eidolon::render::bindings::instance_uniforms
 #import bevy_eidolon::render::io_types::{VertexOutput, Vertex}
+#import bevy_eidolon::render::constants::TAU
+
 
 struct CustomMaterialUniform {
     color: vec4<f32>,
@@ -23,7 +25,6 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     var local_position = vertex.position;
 
-    let TAU = 6.283185307;
     let time_phase = (globals.time * material.speed) % TAU;
 
     local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
