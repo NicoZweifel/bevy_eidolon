@@ -39,18 +39,18 @@ pub(crate) fn prepare_instance_buffer(
         let instance_vec = &instance_data.instances;
         let count = instance_vec.len();
 
-        if let Some(ref mut buffer) = instance_buffer {
-            if count <= buffer.capacity as usize {
-                if count > 0 {
-                    render_queue.write_buffer(
-                        &buffer.buffer,
-                        0,
-                        bytemuck::cast_slice(instance_vec.as_slice()),
-                    );
-                }
-                buffer.length = count;
-                continue;
+        if let Some(ref mut buffer) = instance_buffer
+            && count <= buffer.capacity as usize
+        {
+            if count > 0 {
+                render_queue.write_buffer(
+                    &buffer.buffer,
+                    0,
+                    bytemuck::cast_slice(instance_vec.as_slice()),
+                );
             }
+            buffer.length = count;
+            continue;
         }
 
         create_buffer(
@@ -117,7 +117,7 @@ pub(crate) fn prepare_instanced_bind_group<M>(
     {
         let any_changed = instance_data.is_changed()
             || gtf.is_changed()
-            || instance_history.as_ref().map_or(false, |h| h.is_changed());
+            || instance_history.as_ref().is_some_and(|h| h.is_changed());
 
         let has_buffer = uniform_buffer.is_some();
         let has_bind_group = existing_bind_group.is_some();

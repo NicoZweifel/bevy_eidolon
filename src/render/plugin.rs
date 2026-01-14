@@ -174,10 +174,10 @@ fn early_sweep_instanced_material_instances<M: InstancedMaterial>(
     let last_change_tick = material_instances.current_change_tick;
 
     for entity in removed_materials_query.read() {
-        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into()) {
-            if occupied_entry.get().last_change_tick != last_change_tick {
-                occupied_entry.remove();
-            }
+        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into())
+            && occupied_entry.get().last_change_tick != last_change_tick
+        {
+            occupied_entry.remove();
         }
     }
 }
@@ -190,10 +190,10 @@ fn late_sweep_instanced_material_instances(
     let last_change_tick = material_instances.current_change_tick;
 
     let mut remove = |entity: Entity| {
-        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into()) {
-            if occupied_entry.get().last_change_tick != last_change_tick {
-                occupied_entry.remove();
-            }
+        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into())
+            && occupied_entry.get().last_change_tick != last_change_tick
+        {
+            occupied_entry.remove();
         }
     };
 

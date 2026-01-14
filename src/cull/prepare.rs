@@ -116,10 +116,10 @@ pub fn prepare_instanced_material_compute_resources(
             indirect_buffer_opt,
             lod_buffer_opt,
             instance_buffer_opt.as_ref(),
-        ) {
-            if count_u32 <= source.capacity && count_u32 <= output.capacity {
-                reuse_buffers = true;
-            }
+        ) && count_u32 <= source.capacity
+            && count_u32 <= output.capacity
+        {
+            reuse_buffers = true;
         }
 
         if reuse_buffers {
@@ -184,31 +184,28 @@ pub fn prepare_instanced_material_compute_resources(
         let indirect_buffer = if let Some(existing) = indirect_buffer_opt {
             render_queue.write_buffer(&existing.buffer, 4, &[0, 0, 0, 0]);
             existing.buffer.clone()
-        } else {
-            if let RenderMeshBufferInfo::Indexed {
-                count: index_count, ..
-            } = gpu_mesh.buffer_info
-            {
-                let Some(index_slice) =
-                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)
-                else {
-                    continue;
-                };
-                let command = DrawIndexedIndirectArgs {
-                    index_count,
-                    instance_count: 0,
-                    first_index: index_slice.range.start,
-                    base_vertex: vertex_slice.range.start as i32,
-                    first_instance: 0,
-                };
-                render_device.create_buffer_with_data(&BufferInitDescriptor {
-                    label: Some("instanced_material_compute_indirect_buffer"),
-                    contents: command.as_bytes(),
-                    usage: BufferUsages::STORAGE | BufferUsages::INDIRECT | BufferUsages::COPY_DST,
-                })
-            } else {
+        } else if let RenderMeshBufferInfo::Indexed {
+            count: index_count, ..
+        } = gpu_mesh.buffer_info
+        {
+            let Some(index_slice) = mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)
+            else {
                 continue;
-            }
+            };
+            let command = DrawIndexedIndirectArgs {
+                index_count,
+                instance_count: 0,
+                first_index: index_slice.range.start,
+                base_vertex: vertex_slice.range.start as i32,
+                first_instance: 0,
+            };
+            render_device.create_buffer_with_data(&BufferInitDescriptor {
+                label: Some("instanced_material_compute_indirect_buffer"),
+                contents: command.as_bytes(),
+                usage: BufferUsages::STORAGE | BufferUsages::INDIRECT | BufferUsages::COPY_DST,
+            })
+        } else {
+            continue;
         };
 
         let source_buffer = {
