@@ -1,3 +1,4 @@
+use bevy_render::batching::NoAutomaticBatching;
 use bevy_asset::{Asset, Handle};
 use bevy_color::{Color, ColorToComponents};
 use bevy_derive::{Deref, DerefMut};
@@ -176,6 +177,8 @@ impl InstancedMaterialUniforms {
 }
 
 #[derive(Component, Clone, Debug, Deref, DerefMut)]
+// Required for now, don't remove this; it will cause silent failure (nothing renders in some cases).
+#[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;
