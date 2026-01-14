@@ -1,9 +1,10 @@
 #import bevy_pbr::prepass_bindings
+
+#import bevy_pbr::mesh_view_bindings::view
 #import bevy_render::view::View
 #import bevy_render::{
     globals::Globals,
 }
-
 
 #import bevy_eidolon::render::bindings::instance_uniforms
 #import bevy_eidolon::render::utils
@@ -17,9 +18,8 @@ struct CustomMaterialUniform {
     frequency: f32
 };
 
-@group(3) @binding(0) var<uniform> material: CustomMaterialUniform;
-@group(0) @binding(0) var<uniform> view: View;
 @group(0) @binding(1) var<uniform> globals: Globals;
+@group(3) @binding(0) var<uniform> material: CustomMaterialUniform;
 
 struct PrepassVertexOutput {
     @builtin(position) clip_position: vec4<f32>,
