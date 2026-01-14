@@ -177,7 +177,7 @@ impl InstancedMaterialUniforms {
 }
 
 #[derive(Component, Clone, Debug, Deref, DerefMut)]
-// Required for now, don't remove this; it will cause silent failure (nothing renders in some cases).
+// Required for now, don't remove this. It will cause silent failure (nothing renders in some cases).
 #[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
