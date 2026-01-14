@@ -1,5 +1,4 @@
 #import bevy_pbr::mesh_view_bindings::view
-#import bevy_pbr::mesh_bindings::mesh
 #import bevy_pbr::mesh_view_bindings::globals
 
 #import bevy_eidolon::render::utils
