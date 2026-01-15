@@ -20,7 +20,7 @@ use bevy_render::{
 use bevy_shader::load_shader_library;
 use bevy_transform::prelude::GlobalTransform;
 
-use crate::prepass::InstancedPrepassPlugin;
+use crate::prepass::plugin::InstancedPrepassPlugin;
 
 use std::hash::Hash;
 use std::marker::PhantomData;

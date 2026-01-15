@@ -127,18 +127,18 @@ pub fn prepare_instanced_material_compute_resources(
             let indirect = indirect_buffer_opt.unwrap();
             let lod = lod_buffer_opt.unwrap();
 
-            let mut write_lod = false;
+            let mut write_lod_cull_data = false;
             if let Some(ref mut cached) = cached_lod_data {
                 if bytes_of(&cached.0) != bytes_of(&lod_data) {
                     cached.0 = lod_data;
-                    write_lod = true;
+                    write_lod_cull_data = true;
                 }
             } else {
                 commands.entity(entity).insert(CachedLodCullData(lod_data));
-                write_lod = true;
+                write_lod_cull_data = true;
             }
 
-            if write_lod {
+            if write_lod_cull_data {
                 render_queue.write_buffer(&lod.buffer, 0, bytes_of(&lod_data));
             }
 

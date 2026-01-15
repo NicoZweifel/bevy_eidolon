@@ -1,11 +1,6 @@
 #import bevy_pbr::utils::rand_f
 #import bevy_eidolon::cull::bindings::{source_buffer, instance_buffer, indirect_args, lod_data, camera}
 
-fn hash_noise(index: u32) -> f32 {
-    var state = index;
-    return rand_f(&state);
-}
-
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let i = global_id.x;
