@@ -116,6 +116,11 @@ fn collect_inputs<M: InstancedMaterial>(
     let mut dirty_entities = Vec::new();
     let mut active_entities = BTreeSet::new();
 
+    let default_aabb = Aabb {
+        center: Vec3A::ZERO,
+        half_extents: Vec3A::splat(f32::MAX),
+    };
+
     for (data, mesh_instance, material) in query
         .iter()
         .filter(|(_, _, instance_data, ..)| !instance_data.instances.is_empty())
@@ -180,10 +185,7 @@ fn collect_inputs<M: InstancedMaterial>(
                     half_extents,
                 }
             })
-            .unwrap_or_else(|| Aabb {
-                center: Vec3A::ZERO,
-                half_extents: Vec3A::splat(f32::MAX),
-            });
+            .unwrap_or(default_aabb);
 
         let input = BatchInput {
             entity,
