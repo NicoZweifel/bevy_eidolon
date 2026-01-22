@@ -108,7 +108,7 @@ impl Batcher<'_> {
 
         self.batch_ranges
             .batch_lookup
-            .insert(input.entity, batch_index);
+            .insert(input.entity, index);
 
         self.batch_ranges
             .representatives

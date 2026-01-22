@@ -71,11 +71,7 @@ impl BatchBuffer {
     }
 
     pub fn clear(&mut self, batch: usize) {
-        if batch >= self.capacity {
-            return;
-        }
-
-        if self.zeroed(batch) {
+        if !self.bounds_check(batch) || self.zeroed(batch) {
             return;
         }
 
@@ -90,6 +86,10 @@ impl BatchBuffer {
         cast_slice::<_, u8>(std::slice::from_ref(&self.metadata[batch]))
             .iter()
             .all(|&b| b == 0)
+    }
+
+    fn bounds_check(&self, batch: usize) -> bool {
+        batch < self.capacity
     }
 
     #[inline]
