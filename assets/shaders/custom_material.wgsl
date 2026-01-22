@@ -21,9 +21,9 @@ struct CustomMaterialUniform {
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
-
     var local_position = vertex.position;
 
+    let batch = instance_uniforms[vertex.i_batch_id];
     let time_phase = (globals.time * material.speed) % TAU;
 
     local_position.y += sin((vertex.position.x + vertex.position.z) * material.frequency
@@ -33,7 +33,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     let final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,
         vertex.i_rotation,
-        instance_uniforms.world_from_local
+        batch.world_from_local
     );
 
     let world_position = final_matrix * vec4<f32>(local_position, 1.0);
@@ -48,11 +48,12 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_color = textureSample(base_color_texture, base_color_sampler, in.uv);
+    let batch = instance_uniforms[in.i_batch_id];
 
 #ifdef IS_RED
     return vec4(1., 0., 0., 0.);
 #endif
 
-    return material.color * tex_color * instance_uniforms.color;
+    return material.color * tex_color * batch.color;
 }
 

@@ -1,9 +1,3 @@
-use crate::prelude::*;
-use crate::render::{
-    draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
-    prepared_material::PreparedInstancedMaterial, queue::*,
-};
-
 use bevy_app::{App, Plugin, PreUpdate};
 use bevy_asset::{AssetApp, UntypedAssetId, embedded_asset};
 use bevy_camera::prelude::ViewVisibility;
@@ -20,10 +14,17 @@ use bevy_render::{
 use bevy_shader::load_shader_library;
 use bevy_transform::prelude::GlobalTransform;
 
-use crate::prepass::plugin::InstancedPrepassPlugin;
-
 use std::hash::Hash;
 use std::marker::PhantomData;
+
+use crate::allocator::prelude::AllocatorPlugin;
+use crate::cull::prepare::prepare_global_cull_buffer;
+use crate::prelude::*;
+use crate::prepass::plugin::InstancedPrepassPlugin;
+use crate::render::{
+    draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
+    prepared_material::PreparedInstancedMaterial, queue::*,
+};
 
 /// A SystemSet for ordering instanced material extraction.
 #[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
@@ -56,11 +57,6 @@ impl Plugin for InstancedMaterialCorePlugin {
             .add_systems(
                 ExtractSchedule,
                 late_sweep_instanced_material_instances.after(InstancedMaterialExtractionSystems),
-            )
-            .add_systems(
-                Render,
-                ((prepare_instance_buffer, prepare_indirect_draw_buffer)
-                    .in_set(RenderSystems::PrepareResources),),
             );
     }
 }
@@ -101,6 +97,7 @@ where
         app.init_asset::<M>();
 
         app.add_plugins((
+            AllocatorPlugin::<M>::default(),
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
             InstancedPrepassPlugin::<M>::default(),
@@ -124,8 +121,9 @@ where
             .add_systems(
                 Render,
                 (
+                    (prepare_instanced_material_buffers::<M>.after(prepare_global_cull_buffer),)
+                        .in_set(RenderSystems::PrepareResources),
                     queue_instanced_material::<M>.in_set(RenderSystems::QueueMeshes),
-                    prepare_instanced_bind_group::<M>.in_set(RenderSystems::PrepareResources),
                 ),
             );
     }
@@ -218,7 +216,7 @@ pub struct RenderInstancedMaterialInstances {
     /// Maps from each entity in the main world to the
     /// [`RenderInstancedMaterialInstance`] associated with it.
     pub instances: MainEntityHashMap<RenderInstancedMaterialInstance>,
-    /// A monotonically increasing counter, which we use to sweep
+    /// A monotonically increasing counter, which is used to sweep
     /// [`RenderInstancedMaterialInstances::instances`] when the entities and/or required
     /// components are removed.
     pub current_change_tick: Tick,

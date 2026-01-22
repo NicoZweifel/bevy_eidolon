@@ -13,6 +13,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::prelude::InstancedMaterial;
 
+use bevy_render::render_resource::ShaderType;
 use bevy_transform::prelude::GlobalTransform;
 use derive_more::{From, Into};
 use std::fmt;
@@ -37,7 +38,7 @@ impl InstanceColor {
     }
 }
 
-#[derive(Clone, Copy, Pod, Zeroable, Default)]
+#[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec3,
@@ -47,6 +48,19 @@ pub struct InstanceData {
     pub index: u32,
     pub batch_id: u32,
     pub seed: u32,
+}
+
+impl InstanceData {
+    pub fn invalid() -> Self {
+        Self {
+            batch_id: 0xFFFFFFFF,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_batch_id(self, batch_id: u32) -> Self {
+        Self { batch_id, ..self }
+    }
 }
 
 #[derive(Component, Clone, Reflect)]
@@ -70,7 +84,7 @@ impl fmt::Debug for InstanceMaterialData {
 
 impl ExtractComponent for InstanceMaterialData {
     type QueryData = (&'static Self, &'static GlobalTransform);
-    type QueryFilter = ();
+    type QueryFilter = Or<(Changed<Self>, Changed<GlobalTransform>)>;
     type Out = (Self, GlobalTransform);
 
     fn extract_component(
@@ -104,12 +118,11 @@ pub struct InstanceLodBuffer {
     pub buffer: Buffer,
 }
 
-#[derive(Clone, Copy, Pod, Zeroable, Default)]
+#[derive(Clone, Copy, Pod, Zeroable, ShaderType, Default)]
 #[repr(C)]
 pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
-    // TODO either remove this or mesh bindings
     pub world_from_local: Mat4,
     pub previous_world_from_local: Mat4,
 }
@@ -157,4 +170,10 @@ where
     fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
         Some(item.clone())
     }
+}
+
+#[derive(Component, Clone, Copy, Debug, Default)]
+pub struct InstanceBatch {
+    pub batch_id: u32,
+    pub offset: u32,
 }

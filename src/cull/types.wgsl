@@ -16,11 +16,21 @@ struct DrawIndexedIndirectArgs {
     first_instance: u32,
 }
 
-struct CameraCullData {
-    view_pos: vec4<f32>,
+struct BatchMetadata {
+    batch_id: u32,
+    start_index: u32,
+    end_index: u32,
+    lod_group_index: u32,
 }
 
-struct LodCullData {
+struct CameraCullData {
+    view_pos: vec4<f32>,
+    frustum: array<vec4<f32>, 6>,
+}
+
+struct InstanceUniforms {
+    color: vec4<f32>,
     visibility_range: vec4<f32>,
     world_from_local: mat4x4<f32>,
+    previous_world_from_local: mat4x4<f32>,
 }

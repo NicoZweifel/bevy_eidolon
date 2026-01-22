@@ -29,7 +29,7 @@ pub struct InstancedPrepassPipeline<M: InstancedMaterial> {
     pub empty_layout: BindGroupLayout,
     pub mesh_layouts: MeshLayouts,
 
-    pub instance_layout: BindGroupLayout,
+    pub common_layout: BindGroupLayout,
     pub material_layout: BindGroupLayout,
 
     pub prepass_shader: Handle<Shader>,
@@ -54,7 +54,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
         let mesh_layouts = mesh_pipeline.mesh_layouts.clone();
 
         let forward_pipeline = world.resource::<InstancedMaterialPipeline<M>>();
-        let instance_layout = forward_pipeline.instance_layout.clone();
+        let common_layout = forward_pipeline.common_layout.clone();
         let material_layout = forward_pipeline.material_layout.clone();
 
         let prepass_shader = M::prepass_shader().resolve(asset_server, "prepass/prepass.wgsl");
@@ -64,7 +64,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
             view_layout_no_motion_vectors,
             mesh_layouts,
             empty_layout,
-            instance_layout,
+            common_layout,
             material_layout,
             prepass_shader,
             _phantom: PhantomData,
@@ -121,7 +121,7 @@ where
         let bind_group_layouts = vec![
             view_layout,
             self.empty_layout.clone(),
-            self.instance_layout.clone(),
+            self.common_layout.clone(),
             self.material_layout.clone(),
         ];
 

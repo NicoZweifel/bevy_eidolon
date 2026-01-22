@@ -19,7 +19,8 @@ struct CustomMaterialUniform {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_color = textureSample(base_color_texture, base_color_sampler, in.uv);
-    let base_color = material.color * tex_color * instance_uniforms.color;
+    let batch = instance_uniforms[in.i_batch_id];
+    let base_color = material.color * tex_color * batch.color;
 
     var pbr_input: pbr_types::PbrInput = pbr_types::pbr_input_new();
 

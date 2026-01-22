@@ -8,11 +8,15 @@
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
-
     var scale = vertex.i_pos_scale.w;
     var translation = vertex.i_pos_scale.xyz;
 
-    let final_matrix = utils::calc_instance_world_matrix(vertex.i_pos_scale, vertex.i_rotation, instance_uniforms.world_from_local);
+    let batch = instance_uniforms[vertex.i_batch_id];
+    let final_matrix = utils::calc_instance_world_matrix(
+       vertex.i_pos_scale,
+       vertex.i_rotation,
+       batch.world_from_local
+    );
 
     let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
 
@@ -42,10 +46,12 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = utils::get_visibility_range_dither_level(
-        instance_uniforms.visibility_range,
+        batch.visibility_range,
         final_matrix[3]
     );
 #endif
+
+    out.i_batch_id = vertex.i_batch_id;
 
     return out;
 }

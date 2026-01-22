@@ -36,7 +36,8 @@ fn main() -> AppExit {
             ResourceInspectorPlugin::<StressTestConfig>::default(),
             InstancedMaterialCorePlugin,
             InstancedMaterialPlugin::<StandardInstancedMaterial>::default(),
-            GpuComputeCullPlugin,
+            GpuComputeCullCorePlugin,
+            GpuCullComputePlugin::<StandardInstancedMaterial>::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(
@@ -111,8 +112,6 @@ fn setup(
     };
 
     let material_handle = instanced_materials.add(StandardInstancedMaterial {
-        // Signal to the material that it is in the GPU-driven pipeline (not used currently)
-        gpu_cull: true,
         polygon_mode: PolygonMode::Line,
         ..default()
     });
@@ -208,7 +207,7 @@ fn stress_test_chunk_replacement(
     let mut rng = rng();
 
     for (chunk_grid_pos, entity, instance_data, material, tf, aabb, mesh) in &mut query {
-        if !rng.random_bool(0.01) {
+        if !rng.random_bool(0.001) {
             continue;
         }
 

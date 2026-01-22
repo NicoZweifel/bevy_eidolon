@@ -39,7 +39,6 @@ fn setup(
 
     let material_handle = instanced_materials.add(StandardInstancedMaterial {
         debug: false,
-        gpu_cull: false,
         debug_color: Default::default(),
         // Make the triangles double-sided so they can be seen from both sides.
         double_sided: true,

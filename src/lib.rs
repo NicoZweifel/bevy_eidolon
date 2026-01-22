@@ -53,18 +53,19 @@
 //!   simple cases), for now it's just a proof of concept.
 
 pub mod material;
-pub mod resources;
 
 pub mod render;
 
 pub mod components;
 
+pub mod allocator;
 pub mod cull;
 pub mod prepass;
 pub mod utils;
 
 pub mod prelude {
     pub use crate::{
-        components::*, cull::prelude::*, material::*, render::prelude::*, resources::*, utils::*,
+        allocator::prelude::*, components::*, cull::prelude::*, material::*, prepass::prelude::*,
+        render::prelude::*, utils::*,
     };
 }

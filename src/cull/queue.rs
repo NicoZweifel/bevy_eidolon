@@ -15,7 +15,8 @@ pub fn queue_instanced_material_compute_pipeline(
     let id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
         label: Some("instanced_material_compute_pipeline".into()),
         layout: vec![
-            compute_pipeline.entity_layout.clone(),
+            compute_pipeline.compute_layout.clone(),
+            compute_pipeline.common_layout.clone(),
             compute_pipeline.global_layout.clone(),
         ],
         push_constant_ranges: vec![],

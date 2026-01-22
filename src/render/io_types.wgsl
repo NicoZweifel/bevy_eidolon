@@ -44,4 +44,5 @@ struct VertexOutput {
     @location(3) uv: vec2<f32>,
     @location(4) world_tangent: vec4<f32>,
     @location(5) local_pos: vec3<f32>,
+    @location(6) i_batch_id: u32,
 };

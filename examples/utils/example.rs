@@ -12,6 +12,8 @@ use bevy::{
 };
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_render::RenderPlugin;
+use bevy_render::settings::{RenderCreation, WgpuLimits, WgpuSettings};
 use bevy_render::view::Hdr;
 use bevy_show_prepass::{ShowPrepass, ShowPrepassPlugin};
 use camera_controller::*;
@@ -29,7 +31,21 @@ impl Plugin for ExamplePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ExamplePluginOptions>()
             .insert_resource(DirectionalLightShadowMap { size: 4096 })
-            .add_plugins(DefaultPlugins.set(AssetPlugin { ..default() }))
+            .add_plugins(
+                DefaultPlugins
+                    .set(AssetPlugin { ..default() })
+                    .set(RenderPlugin {
+                        render_creation: RenderCreation::Automatic(WgpuSettings {
+                            limits: WgpuLimits {
+                                max_storage_buffer_binding_size: 1024 << 20,
+                                max_buffer_size: 1024 << 20,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                        ..default()
+                    }),
+            )
             .add_plugins((
                 FrameTimeDiagnosticsPlugin::default(),
                 EntityCountDiagnosticsPlugin::default(),

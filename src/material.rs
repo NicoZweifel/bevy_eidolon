@@ -5,7 +5,6 @@ use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
-use bevy_render::batching::NoAutomaticBatching;
 use bevy_render::{
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
@@ -54,10 +53,6 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
         false
     }
 
-    fn gpu_cull(&self) -> bool {
-        false
-    }
-
     /// Allow specializing the pipeline (e.g. enabling shader defs based on material settings).
     fn specialize(
         _descriptor: &mut RenderPipelineDescriptor,
@@ -73,7 +68,6 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
 #[bind_group_data(InstancedMaterialKey)]
 pub struct StandardInstancedMaterial {
     pub debug: bool,
-    pub gpu_cull: bool,
     pub debug_color: Color,
     pub polygon_mode: PolygonMode,
     pub double_sided: bool,
@@ -85,10 +79,6 @@ impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
         let mut key = InstancedMaterialKey::empty();
         if material.debug {
             key.insert(InstancedMaterialKey::DEBUG);
-        }
-
-        if material.gpu_cull {
-            key.insert(InstancedMaterialKey::GPU_CULL);
         }
 
         if material.double_sided {
@@ -123,10 +113,6 @@ impl InstancedMaterial for StandardInstancedMaterial {
 
     fn double_sided(&self) -> bool {
         self.double_sided
-    }
-
-    fn gpu_cull(&self) -> bool {
-        self.gpu_cull
     }
 
     fn specialize(
@@ -177,8 +163,6 @@ impl InstancedMaterialUniforms {
 }
 
 #[derive(Component, Clone, Debug, Deref, DerefMut)]
-// Required for now, don't remove this. It will cause silent failure (nothing renders in some cases).
-#[require(NoAutomaticBatching)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;

@@ -31,18 +31,19 @@ struct PrepassVertexOutput {
 @vertex
 fn vertex(vertex: Vertex) -> PrepassVertexOutput {
     var out: PrepassVertexOutput;
+    let batch = instance_uniforms[vertex.i_batch_id];
 
     let final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,
         vertex.i_rotation,
-        instance_uniforms.world_from_local
+        batch.world_from_local
     );
     let world_position = final_matrix * vec4<f32>(vertex.position, 1.0);
 
     let prev_final_matrix = utils::calc_instance_world_matrix(
         vertex.i_pos_scale,
         vertex.i_rotation,
-        instance_uniforms.previous_world_from_local
+        batch.previous_world_from_local
     );
     let previous_world_position = prev_final_matrix * vec4<f32>(vertex.position, 1.0);
 
@@ -67,7 +68,7 @@ fn vertex(vertex: Vertex) -> PrepassVertexOutput {
 
 #ifdef VISIBILITY_RANGE_DITHER
     out.visibility_range_dither = utils::get_visibility_range_dither_level(
-        instance_uniforms.visibility_range,
+        batch.visibility_range,
         final_matrix[3]
     );
 #endif
