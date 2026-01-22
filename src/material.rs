@@ -33,6 +33,11 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
         ShaderRef::Default
     }
 
+    /// The compute shader used for culling.
+    fn cull_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+
     fn disable_prepass(&self) -> bool {
         false
     }

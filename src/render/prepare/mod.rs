@@ -1,4 +1,4 @@
-mod batch_builder;
+mod batcher;
 mod core;
 mod instance_buffer_updater;
 mod page_prepare_runner;
@@ -8,6 +8,7 @@ use crate::allocator::prelude::*;
 use crate::cull::pipeline::InstancedComputePipeline;
 use crate::prelude::*;
 use crate::render::pipeline::InstancedMaterialPipeline;
+
 use core::{BatchInput, CachedInputState, Write};
 use page_prepare_runner::PagePrepareRunner;
 
@@ -21,6 +22,9 @@ use bevy_render::{
     sync_world::MainEntity,
 };
 use bevy_transform::components::GlobalTransform;
+
+use bevy_camera::primitives::Aabb;
+use bevy_math::{Vec3, Vec3A};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -36,13 +40,14 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
     meshes: Res<RenderAssets<RenderMesh>>,
     mesh_allocator: Res<MeshAllocator>,
     render_pipeline: Res<InstancedMaterialPipeline<M>>,
-    compute_pipeline: Option<Res<InstancedComputePipeline>>,
+    compute_pipeline: Option<Res<InstancedComputePipeline<M>>>,
     query: Query<(
         Entity,
         &MainEntity,
         &InstanceMaterialData,
         &GlobalTransform,
         Option<&GpuCullCompute>,
+        Option<&Aabb>,
     )>,
     instanced_materials: Query<&InstancedMeshMaterial<M>>,
     mut cached_state: Local<EntityHashMap<CachedInputState>>,
@@ -101,6 +106,7 @@ fn collect_inputs<M: InstancedMaterial>(
         &InstanceMaterialData,
         &GlobalTransform,
         Option<&GpuCullCompute>,
+        Option<&Aabb>,
     )>,
     instanced_materials: &Query<&InstancedMeshMaterial<M>>,
     render_mesh_instances: &RenderMeshInstances,
@@ -110,38 +116,40 @@ fn collect_inputs<M: InstancedMaterial>(
     let mut dirty_entities = Vec::new();
     let mut active_entities = BTreeSet::new();
 
-    for (entity, main_entity, instance_data, gtf, gpu_cull) in query {
-        if instance_data.instances.is_empty() {
-            continue;
-        }
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
-            continue;
-        };
-        let Ok(mat_handle) = instanced_materials.get(entity) else {
-            continue;
-        };
+    for (data, mesh_instance, material) in query
+        .iter()
+        .filter(|(_, _, instance_data, ..)| !instance_data.instances.is_empty())
+        .filter_map(|data| {
+            let (entity, main_entity, ..) = data;
+            let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
+            let material = instanced_materials.get(entity).ok()?;
+
+            Some((data, mesh_instance, material))
+        })
+    {
+        let (entity, main_entity, instance_data, gtf, gpu_cull, aabb) = data;
 
         active_entities.insert(entity);
 
         let batch_key = BatchKey {
-            material: mat_handle.id(),
+            material: material.id(),
             mesh: mesh_instance.mesh_asset_id,
             gpu_cull: gpu_cull.is_some(),
         };
 
         let mut hasher = DefaultHasher::new();
         batch_key.hash(&mut hasher);
-        let key_hash = hasher.finish();
 
-        let is_dirty = match cached_state.get(&entity) {
-            Some(cached) => {
+        let key_hash = hasher.finish();
+        let dirty = cached_state
+            .get(&entity)
+            .map(|cached| {
                 cached.key_hash != key_hash
                     || !Arc::ptr_eq(&cached.instances, &instance_data.instances)
-            }
-            None => true,
-        };
+            })
+            .unwrap_or(true);
 
-        if is_dirty {
+        if dirty {
             cached_state.insert(
                 entity,
                 CachedInputState {
@@ -152,6 +160,31 @@ fn collect_inputs<M: InstancedMaterial>(
             dirty_entities.push(entity);
         }
 
+        let Aabb {
+            center,
+            half_extents,
+        } = aabb
+            .map(|aabb| {
+                let transform = gtf.to_matrix();
+                let center = transform
+                    .transform_point3(Vec3::from(aabb.center))
+                    .to_vec3a();
+
+                let x = transform.transform_vector3(Vec3::X * aabb.half_extents.x);
+                let y = transform.transform_vector3(Vec3::Y * aabb.half_extents.y);
+                let z = transform.transform_vector3(Vec3::Z * aabb.half_extents.z);
+                let half_extents = (x.abs() + y.abs() + z.abs()).to_vec3a();
+
+                Aabb {
+                    center,
+                    half_extents,
+                }
+            })
+            .unwrap_or_else(|| Aabb {
+                center: Vec3A::ZERO,
+                half_extents: Vec3A::splat(f32::MAX),
+            });
+
         let input = BatchInput {
             entity,
             main_entity: *main_entity,
@@ -161,6 +194,8 @@ fn collect_inputs<M: InstancedMaterial>(
             batch: InstanceUniforms {
                 world_from_local: gtf.to_matrix(),
                 previous_world_from_local: gtf.to_matrix(),
+                aabb_center: center.extend(0.0),
+                aabb_half_extents: half_extents.extend(0.0),
                 ..instance_data.into()
             },
         };

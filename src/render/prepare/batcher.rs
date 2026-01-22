@@ -22,7 +22,7 @@ impl Batcher<'_> {
     pub fn batch(
         &mut self,
         batcher: &mut crate::allocator::batch_buffer::BatchBuffer,
-        page_entities: &Vec<Entity>,
+        page_entities: &[Entity],
         input_map: &EntityHashMap<BatchInput>,
         batch_allocator: &IdAllocator,
     ) {
@@ -30,26 +30,20 @@ impl Batcher<'_> {
 
         batcher.ensure_capacity(max_batch);
 
-        for entity in page_entities {
-            let Some(input) = input_map.get(entity) else {
-                continue;
-            };
-
-            let Some(&index) = batch_allocator.allocations.get(&input.entity) else {
-                continue;
-            };
-
-            let Some(mesh) = self.meshes.get(input.mesh_id) else {
-                continue;
-            };
+        for (input, index, index_count) in page_entities.iter().filter_map(|entity| {
+            let input = input_map.get(entity)?;
+            let index = batch_allocator.allocations.get(entity)?;
+            let mesh = self.meshes.get(input.mesh_id)?;
 
             let RenderMeshBufferInfo::Indexed {
                 count: index_count, ..
             } = mesh.buffer_info
             else {
-                continue;
+                return None;
             };
 
+            Some((input, *index, index_count))
+        }) {
             let offset = self
                 .source_allocator
                 .get_location(input.entity)
@@ -76,7 +70,7 @@ impl Batcher<'_> {
                 input.instances.len() as u32
             };
 
-            let batch_data = BatchData {
+            let data = BatchData {
                 indirect: DrawIndexedIndirectArgs {
                     index_count,
                     instance_count,
@@ -93,7 +87,7 @@ impl Batcher<'_> {
                 },
             };
 
-            batcher.update(index as usize, batch_data);
+            batcher.update(index as usize, data);
         }
     }
 

@@ -11,10 +11,11 @@ use crate::prelude::*;
 use bevy_app::prelude::*;
 use bevy_asset::embedded_asset;
 use bevy_ecs::prelude::*;
-use bevy_render::render_graph::RenderLabel;
 use bevy_render::{
-    Render, RenderApp, RenderSystems, extract_component::ExtractComponentPlugin,
-    graph::CameraDriverLabel, render_graph::RenderGraph,
+    Render, RenderApp, RenderSystems,
+    extract_component::ExtractComponentPlugin,
+    graph::CameraDriverLabel,
+    render_graph::{RenderGraph, RenderLabel},
 };
 use bevy_shader::load_shader_library;
 
@@ -61,21 +62,6 @@ impl Plugin for GpuComputeCullCorePlugin {
         embedded_asset!(app, "compute.wgsl");
 
         app.add_plugins((ExtractComponentPlugin::<GpuCullCompute>::default(),));
-
-        let render_app = app.sub_app_mut(RenderApp);
-
-        render_app.add_systems(
-            Render,
-            (
-                (queue_instanced_material_compute_pipeline,).in_set(RenderSystems::QueueMeshes),
-                prepare_global_cull_buffer.in_set(RenderSystems::PrepareResources),
-            ),
-        );
-    }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedComputePipeline>();
     }
 }
 
@@ -93,9 +79,21 @@ impl<T: InstancedMaterial> Plugin for GpuCullComputePlugin<T> {
 
         let label = InstancedMaterialComputeLabel::<T>::default();
         let compute_node = InstancedComputeNode::<T>::from_world(render_app.world_mut());
-        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
+        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
         render_graph.add_node(label.clone(), compute_node);
         render_graph.add_node_edge(label, CameraDriverLabel);
+        render_app.add_systems(
+            Render,
+            (
+                prepare_global_cull_buffer::<T>.in_set(RenderSystems::PrepareResources),
+                queue_instanced_material_compute_pipeline::<T>.in_set(RenderSystems::QueueMeshes),
+            ),
+        );
+    }
+
+    fn finish(&self, app: &mut App) {
+        app.sub_app_mut(RenderApp)
+            .init_resource::<InstancedComputePipeline<T>>();
     }
 }

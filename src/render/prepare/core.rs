@@ -1,5 +1,4 @@
 use crate::components::{InstanceData, InstanceUniforms};
-use crate::render::prepare::utils;
 
 use bevy_asset::AssetId;
 use bevy_ecs::entity::Entity;

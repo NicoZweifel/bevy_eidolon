@@ -21,6 +21,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let batch = instance_uniforms[batch_id];
 
+    // Chunk AABB Frustum Culling
+    let aabb_center = batch.aabb_center.xyz;
+    let aabb_extents = batch.aabb_half_extents.xyz;
+
+    for (var k = 0u; k < 6u; k++) {
+        let plane = camera.frustum[k];
+        let dist = dot(plane.xyz, aabb_center) + plane.w;
+        let radius = dot(abs(plane.xyz), aabb_extents);
+        if (dist < -radius) {
+            return;
+        }
+    }
+
     let local_pos = vec4<f32>(instance.pos_and_scale.xyz, 1.0);
     let world_pos = batch.world_from_local * local_pos;
 

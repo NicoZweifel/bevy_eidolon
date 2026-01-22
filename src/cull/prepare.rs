@@ -13,13 +13,13 @@ use bevy_render::{
 
 use bytemuck::bytes_of;
 
-pub fn prepare_global_cull_buffer(
+pub fn prepare_global_cull_buffer<M: InstancedMaterial>(
     mut commands: Commands,
     views: Query<(&ExtractedView, &Frustum, &Camera)>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     global_buffer: Option<ResMut<GlobalCullBuffer>>,
-    pipeline: Res<InstancedComputePipeline>,
+    pipeline: Res<InstancedComputePipeline<M>>,
 ) {
     let Some((view, frustum, _)) = views.iter().find(|(_, _, cam)| cam.is_active) else {
         return;

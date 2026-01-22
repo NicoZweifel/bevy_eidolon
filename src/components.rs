@@ -125,6 +125,8 @@ pub struct InstanceUniforms {
     pub visibility_range: Vec4,
     pub world_from_local: Mat4,
     pub previous_world_from_local: Mat4,
+    pub aabb_center: Vec4,
+    pub aabb_half_extents: Vec4,
 }
 
 impl From<&InstanceMaterialData> for InstanceUniforms {
@@ -132,6 +134,7 @@ impl From<&InstanceMaterialData> for InstanceUniforms {
         InstanceUniforms {
             color: value.color,
             visibility_range: value.visibility_range,
+            aabb_half_extents: Vec4::splat(f32::MAX),
             ..default()
         }
     }

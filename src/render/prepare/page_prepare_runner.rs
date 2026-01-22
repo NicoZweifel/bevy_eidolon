@@ -3,8 +3,7 @@ use crate::prelude::{
     BatchRanges, BufferBoundsCheck, InstanceAllocator, InstanceAllocatorBackend, InstancePage,
 };
 use crate::render::prepare::{
-    batch_builder::Batcher, core::BatchInput, core::Write,
-    instance_buffer_updater::InstanceBufferUpdater,
+    batcher::Batcher, core::BatchInput, core::Write, instance_buffer_updater::InstanceBufferUpdater,
 };
 
 use bevy_ecs::entity::{Entity, EntityHashMap};
@@ -82,7 +81,7 @@ impl<'a> PagePrepareRunner<'a> {
     }
 
     /// Batch compute-culled instances.
-    fn batch(&mut self, entities: &Vec<Entity>, inputs: &EntityHashMap<BatchInput>) {
+    fn batch(&mut self, entities: &[Entity], inputs: &EntityHashMap<BatchInput>) {
         if entities.is_empty() {
             return;
         }

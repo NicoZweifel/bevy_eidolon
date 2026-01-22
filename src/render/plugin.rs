@@ -121,7 +121,8 @@ where
             .add_systems(
                 Render,
                 (
-                    (prepare_instanced_material_buffers::<M>.after(prepare_global_cull_buffer),)
+                    (prepare_instanced_material_buffers::<M>
+                        .after(prepare_global_cull_buffer::<M>),)
                         .in_set(RenderSystems::PrepareResources),
                     queue_instanced_material::<M>.in_set(RenderSystems::QueueMeshes),
                 ),

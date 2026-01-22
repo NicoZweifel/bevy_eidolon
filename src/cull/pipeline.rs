@@ -1,4 +1,4 @@
-use bevy_asset::{AssetPath, AssetServer, Handle, embedded_path};
+use bevy_asset::{AssetServer, Handle};
 use bevy_ecs::prelude::*;
 use bevy_render::{
     render_resource::{
@@ -12,17 +12,21 @@ use bevy_shader::Shader;
 use super::resources::CameraCullData;
 use crate::components::{InstanceData, InstanceUniforms};
 
+use crate::material::InstancedMaterial;
+use crate::utils::ResolveShaderRef;
+use std::marker::PhantomData;
+
 #[derive(Resource)]
-pub struct InstancedComputePipeline {
-    // TODO
+pub struct InstancedComputePipeline<M: InstancedMaterial> {
     pub compute_layout: BindGroupLayout,
     pub common_layout: BindGroupLayout,
     pub global_layout: BindGroupLayout,
     pub shader: Handle<Shader>,
     pub pipeline_id: Option<CachedComputePipelineId>,
+    pub _marker: PhantomData<M>,
 }
 
-impl FromWorld for InstancedComputePipeline {
+impl<M: InstancedMaterial> FromWorld for InstancedComputePipeline<M> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
@@ -60,8 +64,7 @@ impl FromWorld for InstancedComputePipeline {
             ),
         );
 
-        let shader = asset_server
-            .load(AssetPath::from_path_buf(embedded_path!("compute.wgsl")).with_source("embedded"));
+        let shader = M::cull_shader().resolve(asset_server, "cull/compute.wgsl");
 
         InstancedComputePipeline {
             compute_layout,
@@ -69,6 +72,7 @@ impl FromWorld for InstancedComputePipeline {
             global_layout,
             shader,
             pipeline_id: None,
+            _marker: PhantomData,
         }
     }
 }

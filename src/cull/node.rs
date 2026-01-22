@@ -37,7 +37,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedComputeNode<M> {
 
 impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
     fn update(&mut self, world: &mut World) {
-        let pipeline = world.resource::<InstancedComputePipeline>();
+        let pipeline = world.resource::<InstancedComputePipeline<M>>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
         if let InstancedComputeNodeState::Loading = self.state
@@ -58,7 +58,7 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
             return Ok(());
         }
 
-        let pipeline_res = world.resource::<InstancedComputePipeline>();
+        let pipeline_res = world.resource::<InstancedComputePipeline<M>>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
         let Some(pipeline) = pipeline_res
