@@ -105,9 +105,7 @@ impl Batcher<'_> {
         });
 
         let index = (self.batch_ranges.batches.len() - 1) as u32;
-
         self.batch_ranges.batch_lookup.insert(input.entity, index);
-
         self.batch_ranges
             .representatives
             .push((input.entity, input.main_entity));
