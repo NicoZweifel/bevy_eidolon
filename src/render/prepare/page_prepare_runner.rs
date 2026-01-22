@@ -40,16 +40,16 @@ impl<'a> PagePrepareRunner<'a> {
         writes: &[Write],
         all_inputs: &EntityHashMap<BatchInput>,
     ) {
-        let output_writes = self.update(page_entities, writes, all_inputs);
+        let writes = self.update(page_entities, writes, all_inputs);
 
         self.batch(page_entities, all_inputs);
-        self.write_output(output_writes);
+        self.write(writes);
         self.flush();
         self.update_page();
     }
 
-    /// Write non-compute culled instances to the output buffer.
-    fn write_output(&mut self, writes: Vec<(u64, Vec<InstanceData>)>) {
+    /// Write non-compute culled instances directly to the output buffer.
+    fn write(&mut self, writes: Vec<(u64, Vec<InstanceData>)>) {
         let Some(buffer) = &self.page.output_buffer else {
             return;
         };
@@ -81,6 +81,7 @@ impl<'a> PagePrepareRunner<'a> {
         instance_updater.update(self.page, writes, entities, inputs)
     }
 
+    /// Batch compute-culled instances.
     fn batch(&mut self, entities: &Vec<Entity>, inputs: &EntityHashMap<BatchInput>) {
         if entities.is_empty() {
             return;
