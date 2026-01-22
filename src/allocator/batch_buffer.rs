@@ -75,17 +75,21 @@ impl BatchBuffer {
             return;
         }
 
-        // avoid unnecessary writes if it's already zeroed
-        let zeroed = cast_slice::<_, u8>(std::slice::from_ref(&self.metadata[batch]))
-            .iter()
-            .all(|&b| b == 0);
-
-        if !zeroed {
-            self.indirect[batch] = default();
-            self.uniforms[batch] = default();
-            self.metadata[batch] = default();
-            self.dirty_indices.push(batch);
+        if self.zeroed(batch) {
+            return;
         }
+
+        self.indirect[batch] = default();
+        self.uniforms[batch] = default();
+        self.metadata[batch] = default();
+        self.dirty_indices.push(batch);
+    }
+
+    /// Used to avoid unnecessary writes if it's already zeroed.
+    fn zeroed(&self, batch: usize) -> bool {
+        cast_slice::<_, u8>(std::slice::from_ref(&self.metadata[batch]))
+            .iter()
+            .all(|&b| b == 0)
     }
 
     #[inline]
