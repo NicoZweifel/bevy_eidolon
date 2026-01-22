@@ -37,22 +37,24 @@ pub struct BatchBuffer {
 impl BatchBuffer {
     #[inline]
     pub fn ensure_capacity(&mut self, capacity: usize) {
-        if capacity > self.capacity {
-            #[cfg(feature = "trace")]
-            trace!(
-                "BatchBuffer: Growing capacity {} -> {}",
-                self.capacity, capacity
-            );
-
-            self.indirect.resize(capacity, default());
-            self.uniforms.resize(capacity, default());
-            self.metadata.resize(capacity, default());
-            self.capacity = capacity;
+        if self.check_bounds(capacity) {
+            return;
         }
+
+        #[cfg(feature = "trace")]
+        trace!(
+            "BatchBuffer: Growing capacity {} -> {}",
+            self.capacity, capacity
+        );
+
+        self.indirect.resize(capacity, default());
+        self.uniforms.resize(capacity, default());
+        self.metadata.resize(capacity, default());
+        self.capacity = capacity;
     }
 
     pub fn update(&mut self, batch: usize, data: BatchData) {
-        if batch >= self.capacity {
+        if !self.check_bounds(batch) {
             self.ensure_capacity(batch + 1);
         }
 
@@ -71,7 +73,7 @@ impl BatchBuffer {
     }
 
     pub fn clear(&mut self, batch: usize) {
-        if !self.bounds_check(batch) || self.zeroed(batch) {
+        if !self.check_bounds(batch) || self.zeroed(batch) {
             return;
         }
 
@@ -88,8 +90,8 @@ impl BatchBuffer {
             .all(|&b| b == 0)
     }
 
-    fn bounds_check(&self, batch: usize) -> bool {
-        batch < self.capacity
+    fn check_bounds(&self, capacity: usize) -> bool {
+        capacity < self.capacity
     }
 
     #[inline]
