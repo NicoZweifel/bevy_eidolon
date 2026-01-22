@@ -6,6 +6,7 @@ use bevy_ecs::entity::Entity;
 use bevy_mesh::Mesh;
 use bevy_render::sync_world::MainEntity;
 
+use crate::render::prepare::utils::data_offset;
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -23,11 +24,11 @@ pub(super) struct Clear {
 }
 
 impl From<Range<u32>> for Clear {
-    fn from(Range { start: offset, end }: Range<u32>) -> Self {
+    fn from(Range { start, end }: Range<u32>) -> Self {
         let invalid_instance = InstanceData::invalid();
         Clear {
-            offset: utils::instance_data_offset(offset),
-            clear: vec![invalid_instance; (end - offset) as usize],
+            offset: data_offset::<InstanceData>(start),
+            clear: vec![invalid_instance; (end - start) as usize],
         }
     }
 }

@@ -4,7 +4,7 @@ use bevy_render::{
     renderer::{RenderDevice, RenderQueue},
 };
 
-use crate::render::prepare::{core::Clear, utils::instance_data_offset, *};
+use crate::render::prepare::{core::Clear, utils::data_offset, *};
 
 /// Logic for resizing and updating raw Instance Data buffers.
 pub(super) struct InstanceBufferUpdater<'a> {
@@ -109,7 +109,7 @@ impl<'a> InstanceBufferUpdater<'a> {
         }) {
             self.queue.write_buffer(
                 ctx.source_buffer,
-                instance_data_offset(offset),
+                data_offset::<InstanceData>(offset),
                 bytemuck::cast_slice(&modified),
             );
         }
