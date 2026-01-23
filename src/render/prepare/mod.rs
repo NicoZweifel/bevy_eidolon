@@ -318,7 +318,7 @@ fn process_dirty_entities(
 }
 
 fn sync_pages(pages: &mut Vec<InstancePage>, source_allocator: &InstanceAllocatorBackend) {
-    while pages.len() < source_allocator.page_count() {
-        pages.push(InstancePage::default());
+    if pages.len() < source_allocator.page_count() {
+        pages.resize_with(source_allocator.page_count(), Default::default);
     }
 }
