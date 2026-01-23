@@ -37,7 +37,7 @@ impl Default for PagedAllocator {
 
 impl PagedAllocator {
     /// Commits a [`PageAllocation`] and updates the active count, as well as the watermark.
-    fn alloc_page(&mut self, entity: Entity, page_allocation: impl Into<PageAllocation>) -> bool {
+    fn commit(&mut self, entity: Entity, page_allocation: impl Into<PageAllocation>) -> bool {
         let page_allocation = page_allocation.into();
         let PageAllocation {
             page,
@@ -53,7 +53,7 @@ impl PagedAllocator {
     }
 
     /// Adds a new physical page to the pool.
-    fn add_page(&mut self) -> usize {
+    fn add(&mut self) -> usize {
         self.pages.push(Allocator::new(self.page_size));
         self.pending_clears.push(Vec::new());
         self.watermarks.push(0);
@@ -81,23 +81,23 @@ impl PagedAllocator {
             })
             .next()
             .and_then(|page_allocation| {
-                self.alloc_page(entity, page_allocation)
+                self.commit(entity, page_allocation)
                     .then_some(page_allocation)
             })
     }
 
     /// Creates a new page and allocates the entity.
     fn alloc_new(&mut self, entity: Entity, count: u32) -> Option<PageAllocation> {
-        let page = self.add_page();
+        let page = self.add();
         let allocation = self.pages[page].allocate(count)?;
         let page_allocation = PageAllocation::new(page, allocation, count);
 
-        self.alloc_page(entity, page_allocation)
+        self.commit(entity, page_allocation)
             .then_some(page_allocation)
     }
 
     /// Resets a page to reclaim memory.
-    fn reset_page(&mut self, page: usize) {
+    fn reset(&mut self, page: usize) {
         self.pages[page] = Allocator::new(self.page_size);
         self.watermarks[page] = 0;
         self.pending_clears[page].clear();
@@ -146,7 +146,7 @@ impl InstanceAllocator for PagedAllocator {
         self.active_counts[page] -= count;
 
         if self.active_counts[page] == 0 {
-            self.reset_page(page);
+            self.reset(page);
         } else {
             self.pending_clears[page].push(allocation.offset..(allocation.offset + count));
         }
