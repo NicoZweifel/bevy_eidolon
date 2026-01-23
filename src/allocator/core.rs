@@ -23,7 +23,7 @@ pub trait InstanceAllocator: Send + Sync + 'static {
     /// Reserves a contiguous block of `count` indices for the given `entity`.
     ///
     /// Returns the [`InstanceAllocation`] if successful, or `None` if allocation failed.
-    fn allocate(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation>;
+    fn alloc(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation>;
 
     /// Releases the indices associated with `entity`, making them available for reuse.
     fn free(&mut self, entity: Entity);

@@ -26,10 +26,10 @@ impl Default for InstanceAllocatorBackend {
 }
 
 impl InstanceAllocator for InstanceAllocatorBackend {
-    fn allocate(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation> {
+    fn alloc(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation> {
         match self {
-            Self::Paged(a) => a.allocate(entity, count),
-            Self::Custom(c) => c.allocate(entity, count),
+            Self::Paged(a) => a.alloc(entity, count),
+            Self::Custom(c) => c.alloc(entity, count),
         }
     }
     fn free(&mut self, entity: Entity) {

@@ -105,7 +105,7 @@ impl PagedAllocator {
 }
 
 impl InstanceAllocator for PagedAllocator {
-    fn allocate(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation> {
+    fn alloc(&mut self, entity: Entity, count: u32) -> Option<InstanceAllocation> {
         if count == 0 {
             #[cfg(feature = "trace")]
             tracing::warn!("Count is 0!");
@@ -234,7 +234,7 @@ mod tests {
         let e = Entity::from_raw_u32(1).unwrap();
 
         // Act
-        let res = allocator.allocate(e, 100).expect("Alloc failed");
+        let res = allocator.alloc(e, 100).expect("Alloc failed");
 
         // Assert
         assert_eq!(res.page, 0);
@@ -248,7 +248,7 @@ mod tests {
         // Arrange
         let mut alloc = PagedAllocator::default();
         let e = Entity::from_raw_u32(1).unwrap();
-        alloc.allocate(e, 100).expect("Alloc failed");
+        alloc.alloc(e, 100).expect("Alloc failed");
 
         // Act
         alloc.free(e);
@@ -267,10 +267,10 @@ mod tests {
         let e1 = Entity::from_raw_u32(1).unwrap();
         let e2 = Entity::from_raw_u32(2).unwrap();
 
-        allocator.allocate(e1, 80).unwrap(); // Page 1
+        allocator.alloc(e1, 80).unwrap(); // Page 1
 
         // Act
-        let allocation = allocator.allocate(e2, 50).unwrap(); // Page 2
+        let allocation = allocator.alloc(e2, 50).unwrap(); // Page 2
 
         // Assert
         assert_eq!(allocation.page, 1);
@@ -288,15 +288,15 @@ mod tests {
         let e3 = Entity::from_raw_u32(3).unwrap();
 
         // 128 to align with allocator bin precision
-        allocator.allocate(e1, 128).unwrap();
-        allocator.allocate(e2, 128).unwrap();
-        allocator.allocate(e3, 128).unwrap();
+        allocator.alloc(e1, 128).unwrap();
+        allocator.alloc(e2, 128).unwrap();
+        allocator.alloc(e3, 128).unwrap();
 
         allocator.free(e2);
 
         // Act
         let allocation = allocator
-            .allocate(Entity::from_raw_u32(4).unwrap(), 128)
+            .alloc(Entity::from_raw_u32(4).unwrap(), 128)
             .unwrap();
 
         // Assert

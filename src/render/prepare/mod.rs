@@ -259,7 +259,7 @@ fn process_allocations(
                     .get_location(*entity)
                     .unwrap_or_else(|| {
                         source_allocator
-                            .allocate(
+                            .alloc(
                                 *entity,
                                 inputs
                                     .get(entity)
@@ -301,7 +301,7 @@ fn process_dirty_entities(
             free(source_allocator, pages, entity);
 
             let InstanceAllocation { page, offset } = source_allocator
-                .allocate(entity, input.instances.len() as u32)
+                .alloc(entity, input.instances.len() as u32)
                 .expect("Instance Allocator out of nodes!");
 
             sync_pages(pages, source_allocator);
