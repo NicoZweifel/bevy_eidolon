@@ -44,10 +44,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     // Atomic Append to the batch's draw command
-    let write_index_in_batch = atomicAdd(&indirect_args[batch_id].instance_count, 1u);
+    let batch_write_index = atomicAdd(&indirect_args[batch_id].instance_count, 1u);
 
     let batch_start_offset = batch_offsets[batch_id].start_index;
-    let final_write_index = batch_start_offset + write_index_in_batch;
+    let final_write_index = batch_start_offset + batch_write_index;
 
     // Write the instance to the output buffer
     instance_buffer[final_write_index] = instance;
