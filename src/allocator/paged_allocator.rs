@@ -37,7 +37,7 @@ impl Default for PagedAllocator {
 
 impl PagedAllocator {
     /// Commits a [`PageAllocation`] and updates the active count, as well as the watermark.
-    fn alloc(&mut self, entity: Entity, page_allocation: impl Into<PageAllocation>) -> bool {
+    fn alloc_page(&mut self, entity: Entity, page_allocation: impl Into<PageAllocation>) -> bool {
         let page_allocation = page_allocation.into();
         let PageAllocation {
             page,
@@ -81,7 +81,7 @@ impl PagedAllocator {
             })
             .next()
             .and_then(|page_allocation| {
-                self.alloc(entity, page_allocation)
+                self.alloc_page(entity, page_allocation)
                     .then_some(page_allocation)
             })
     }
@@ -92,7 +92,7 @@ impl PagedAllocator {
         let allocation = self.pages[page].allocate(count)?;
         let page_allocation = PageAllocation::new(page, allocation, count);
 
-        self.alloc(entity, page_allocation)
+        self.alloc_page(entity, page_allocation)
             .then_some(page_allocation)
     }
 
