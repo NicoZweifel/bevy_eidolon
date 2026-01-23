@@ -8,7 +8,7 @@ pub struct IdAllocator {
 }
 
 impl IdAllocator {
-    pub fn allocate(&mut self, entity: Entity) -> u32 {
+    pub fn alloc(&mut self, entity: Entity) -> u32 {
         let id = self.free_ids.pop().unwrap_or_else(|| {
             let watermark = self.watermark;
             self.watermark += 1;

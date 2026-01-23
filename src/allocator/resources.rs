@@ -160,7 +160,7 @@ pub struct InstancePage {
 impl InstancePage {
     /// Allocates a batch ID for the given entity.
     pub fn alloc(&mut self, entity: Entity) -> u32 {
-        self.id_allocator.allocate(entity)
+        self.id_allocator.alloc(entity)
     }
 
     /// Frees the batch ID for the given entity and clears the associated batch data.
