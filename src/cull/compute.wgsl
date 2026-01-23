@@ -36,15 +36,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let local_pos = vec4<f32>(instance.pos_and_scale.xyz, 1.0);
     let world_pos = batch.world_from_local * local_pos;
-
-    // Frustum Culling
-    let radius = instance.pos_and_scale.w;
-    for (var j = 0u; j < 6u; j++) {
-        if (dot(camera.frustum[j], world_pos) < -radius) {
-            return;
-        }
-    }
-
     let dist = distance(world_pos.xyz, camera.view_pos.xyz);
 
     // Distance Culling

@@ -128,11 +128,6 @@ impl InstancedMaterial for StandardInstancedMaterial {
         if key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
             descriptor.primitive.cull_mode = None;
         }
-
-        if key.contains(InstancedMaterialKey::GPU_CULL) {
-            // TODO
-        }
-
         if key.contains(InstancedMaterialKey::POINTS) {
             descriptor.primitive.polygon_mode = PolygonMode::Point;
         }
@@ -193,9 +188,8 @@ bitflags! {
     #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Pod, Zeroable)]
     pub struct InstancedMaterialKey: u64 {
         const DEBUG = 1 << 0;
-        const GPU_CULL = 1 << 2;
-        const LINES = 1 << 3;
-        const POINTS = 1 << 4;
-        const DOUBLE_SIDED = 1<< 5;
+        const LINES = 1 << 2;
+        const POINTS = 1 << 3;
+        const DOUBLE_SIDED = 1<< 4;
     }
 }

@@ -13,6 +13,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::prelude::InstancedMaterial;
 
+use bevy_camera::primitives::Aabb;
 use bevy_render::render_resource::ShaderType;
 use bevy_transform::prelude::GlobalTransform;
 use derive_more::{From, Into};
@@ -83,14 +84,14 @@ impl fmt::Debug for InstanceMaterialData {
 }
 
 impl ExtractComponent for InstanceMaterialData {
-    type QueryData = (&'static Self, &'static GlobalTransform);
-    type QueryFilter = Or<(Changed<Self>, Changed<GlobalTransform>)>;
-    type Out = (Self, GlobalTransform);
+    type QueryData = (&'static Self, &'static GlobalTransform, &'static Aabb);
+    type QueryFilter = Or<(Changed<Self>, Changed<GlobalTransform>, Changed<Aabb>)>;
+    type Out = (Self, GlobalTransform, Aabb);
 
     fn extract_component(
-        (data, transform): QueryItem<'_, '_, Self::QueryData>,
+        (data, transform, aabb): QueryItem<'_, '_, Self::QueryData>,
     ) -> Option<Self::Out> {
-        Some((data.clone(), *transform))
+        Some((data.clone(), *transform, *aabb))
     }
 }
 
