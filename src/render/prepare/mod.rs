@@ -12,7 +12,9 @@ use crate::render::pipeline::InstancedMaterialPipeline;
 use core::{BatchInput, CachedInputState, Write};
 use page_prepare_runner::PagePrepareRunner;
 
+use bevy_camera::primitives::Aabb;
 use bevy_ecs::{entity::EntityHashMap, prelude::*};
+use bevy_math::{Vec3, Vec3A};
 use bevy_pbr::RenderMeshInstances;
 use bevy_render::{
     mesh::RenderMesh,
@@ -22,9 +24,7 @@ use bevy_render::{
     sync_world::MainEntity,
 };
 use bevy_transform::components::GlobalTransform;
-
-use bevy_camera::primitives::Aabb;
-use bevy_math::{Vec3, Vec3A};
+use bevy_utils::default;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -319,6 +319,6 @@ fn process_dirty_entities(
 
 fn sync_pages(pages: &mut Vec<InstancePage>, source_allocator: &InstanceAllocatorBackend) {
     if pages.len() < source_allocator.page_count() {
-        pages.resize_with(source_allocator.page_count(), Default::default);
+        pages.resize_with(source_allocator.page_count(), default);
     }
 }
