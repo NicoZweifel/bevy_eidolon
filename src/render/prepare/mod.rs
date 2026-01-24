@@ -52,7 +52,11 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
     instanced_materials: Query<&InstancedMeshMaterial<M>>,
     mut cached_state: Local<EntityHashMap<CachedInputState>>,
 ) {
-    let (inputs, dirty_entities, active_entities) = collect_inputs(
+    let CollectInputResult {
+        inputs,
+        dirty_entities,
+        active_entities,
+    } = collect_inputs(
         &query,
         &instanced_materials,
         &render_mesh_instances,
@@ -70,19 +74,15 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
 
     batch_ranges.clear();
 
-    let required_pages = source_allocator.page_count();
+    let count = source_allocator.page_count();
 
-    for page_id in 0..required_pages {
-        let Some(page_entities) = entities.get(&page_id) else {
-            continue;
-        };
+    for (id, entities) in (0..count).filter_map(|id| entities.get(&id).map(|e| (id, e))) {
+        let empty = Vec::new();
+        let writes = pending.get(&id).unwrap_or(&empty);
 
-        let empty_writes = Vec::new();
-        let writes = pending.get(&page_id).unwrap_or(&empty_writes);
-
-        let page = &mut allocator.pages[page_id];
+        let page = &mut allocator.pages[id];
         let mut runner = PagePrepareRunner {
-            id: page_id,
+            id,
             page,
             source_allocator,
             batch_ranges: &mut batch_ranges,
@@ -95,8 +95,14 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
             material_name: std::any::type_name::<M>(),
         };
 
-        runner.prepare(page_entities, writes, &inputs);
+        runner.prepare(entities, writes, &inputs);
     }
+}
+
+struct CollectInputResult {
+    inputs: EntityHashMap<BatchInput>,
+    dirty_entities: Vec<Entity>,
+    active_entities: BTreeSet<Entity>,
 }
 
 fn collect_inputs<M: InstancedMaterial>(
@@ -111,8 +117,7 @@ fn collect_inputs<M: InstancedMaterial>(
     instanced_materials: &Query<&InstancedMeshMaterial<M>>,
     render_mesh_instances: &RenderMeshInstances,
     cached_state: &mut Local<EntityHashMap<CachedInputState>>,
-) -> (EntityHashMap<BatchInput>, Vec<Entity>, BTreeSet<Entity>) {
-    let mut all_inputs = EntityHashMap::default();
+) -> CollectInputResult {
     let mut dirty_entities = Vec::new();
     let mut active_entities = BTreeSet::new();
 
@@ -121,7 +126,7 @@ fn collect_inputs<M: InstancedMaterial>(
         half_extents: Vec3A::splat(f32::MAX),
     };
 
-    for (data, mesh_instance, material) in query
+    let inputs = query
         .iter()
         .filter(|(_, _, instance_data, ..)| !instance_data.instances.is_empty())
         .filter_map(|data| {
@@ -131,81 +136,88 @@ fn collect_inputs<M: InstancedMaterial>(
 
             Some((data, mesh_instance, material))
         })
-    {
-        let (entity, main_entity, instance_data, gtf, gpu_cull, aabb) = data;
+        .fold(
+            EntityHashMap::default(),
+            |mut acc, (data, mesh_instance, material)| {
+                let (entity, main_entity, instance_data, gtf, gpu_cull, aabb) = data;
 
-        active_entities.insert(entity);
+                active_entities.insert(entity);
 
-        let batch_key = BatchKey {
-            material: material.id(),
-            mesh: mesh_instance.mesh_asset_id,
-            gpu_cull: gpu_cull.is_some(),
-        };
+                let batch_key = BatchKey {
+                    material: material.id(),
+                    mesh: mesh_instance.mesh_asset_id,
+                    gpu_cull: gpu_cull.is_some(),
+                };
 
-        let mut hasher = DefaultHasher::new();
-        batch_key.hash(&mut hasher);
+                let mut hasher = DefaultHasher::new();
+                batch_key.hash(&mut hasher);
 
-        let key_hash = hasher.finish();
-        let dirty = cached_state
-            .get(&entity)
-            .map(|cached| {
-                cached.key_hash != key_hash
-                    || !Arc::ptr_eq(&cached.instances, &instance_data.instances)
-            })
-            .unwrap_or(true);
+                let key_hash = hasher.finish();
+                let dirty = cached_state
+                    .get(&entity)
+                    .map(|cached| {
+                        cached.key_hash != key_hash
+                            || !Arc::ptr_eq(&cached.instances, &instance_data.instances)
+                    })
+                    .unwrap_or(true);
 
-        if dirty {
-            cached_state.insert(
-                entity,
-                CachedInputState {
-                    instances: instance_data.instances.clone(),
-                    key_hash,
-                },
-            );
-            dirty_entities.push(entity);
-        }
+                if dirty {
+                    cached_state.insert(
+                        entity,
+                        CachedInputState {
+                            instances: instance_data.instances.clone(),
+                            key_hash,
+                        },
+                    );
+                    dirty_entities.push(entity);
+                }
 
-        let Aabb {
-            center,
-            half_extents,
-        } = aabb
-            .map(|aabb| {
-                let transform = gtf.to_matrix();
-                let center = transform
-                    .transform_point3(Vec3::from(aabb.center))
-                    .to_vec3a();
-
-                let x = transform.transform_vector3(Vec3::X * aabb.half_extents.x);
-                let y = transform.transform_vector3(Vec3::Y * aabb.half_extents.y);
-                let z = transform.transform_vector3(Vec3::Z * aabb.half_extents.z);
-                let half_extents = (x.abs() + y.abs() + z.abs()).to_vec3a();
-
-                Aabb {
+                let Aabb {
                     center,
                     half_extents,
-                }
-            })
-            .unwrap_or(default_aabb);
+                } = aabb
+                    .map(|aabb| {
+                        let transform = gtf.to_matrix();
+                        let center = transform
+                            .transform_point3(Vec3::from(aabb.center))
+                            .to_vec3a();
 
-        let input = BatchInput {
-            entity,
-            main_entity: *main_entity,
-            mesh_id: mesh_instance.mesh_asset_id,
-            instances: instance_data.instances.clone(),
-            gpu_cull: gpu_cull.is_some(),
-            batch: InstanceUniforms {
-                world_from_local: gtf.to_matrix(),
-                previous_world_from_local: gtf.to_matrix(),
-                aabb_center: center.extend(0.0),
-                aabb_half_extents: half_extents.extend(0.0),
-                ..instance_data.into()
+                        let x = transform.transform_vector3(Vec3::X * aabb.half_extents.x);
+                        let y = transform.transform_vector3(Vec3::Y * aabb.half_extents.y);
+                        let z = transform.transform_vector3(Vec3::Z * aabb.half_extents.z);
+                        let half_extents = (x.abs() + y.abs() + z.abs()).to_vec3a();
+
+                        Aabb {
+                            center,
+                            half_extents,
+                        }
+                    })
+                    .unwrap_or(default_aabb);
+
+                let input = BatchInput {
+                    entity,
+                    main_entity: *main_entity,
+                    mesh_id: mesh_instance.mesh_asset_id,
+                    instances: instance_data.instances.clone(),
+                    gpu_cull: gpu_cull.is_some(),
+                    batch: InstanceUniforms {
+                        world_from_local: gtf.to_matrix(),
+                        previous_world_from_local: gtf.to_matrix(),
+                        aabb_center: center.extend(0.0),
+                        aabb_half_extents: half_extents.extend(0.0),
+                        ..instance_data.into()
+                    },
+                };
+                acc.insert(entity, input);
+                acc
             },
-        };
+        );
 
-        all_inputs.insert(entity, input);
+    CollectInputResult {
+        inputs,
+        dirty_entities,
+        active_entities,
     }
-
-    (all_inputs, dirty_entities, active_entities)
 }
 
 fn process_removals(
