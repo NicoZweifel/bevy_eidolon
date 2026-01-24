@@ -1,10 +1,11 @@
+use crate::allocator::utils::ensure_buffer_capacity;
+use crate::render::prepare::{core::Clear, utils::data_offset, *};
+
 use bevy_ecs::entity::EntityHashMap;
 use bevy_render::{
     render_resource::{Buffer, BufferUsages},
     renderer::{RenderDevice, RenderQueue},
 };
-
-use crate::render::prepare::{core::Clear, utils::data_offset, *};
 
 /// Logic for resizing and updating raw Instance Data buffers.
 pub(super) struct InstanceBufferUpdater<'a> {

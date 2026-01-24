@@ -1,11 +1,12 @@
 use crate::components::InstanceData;
 use crate::prelude::{
-    BatchRanges, BufferBoundsCheck, InstanceAllocator, InstanceAllocatorBackend, InstancePage,
+    BufferBoundsCheck, InstanceAllocator, InstanceAllocatorBackend, InstancePage,
 };
 use crate::render::prepare::{
     batcher::Batcher, core::BatchInput, core::Write, instance_buffer_updater::InstanceBufferUpdater,
 };
 
+use crate::allocator::core::BatchRanges;
 use bevy_ecs::entity::{Entity, EntityHashMap};
 use bevy_render::{
     mesh::RenderMesh,

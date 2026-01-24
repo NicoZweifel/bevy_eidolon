@@ -11,6 +11,7 @@ pub mod id_allocator;
 pub mod paged_allocator;
 pub mod plugin;
 pub mod resources;
+pub(crate) mod utils;
 
 pub mod prelude {
     pub use super::backend::*;

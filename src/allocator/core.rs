@@ -1,7 +1,16 @@
 //! Defines the types and protocol for the module.
 
-use bevy_ecs::entity::Entity;
+use crate::material::InstancedMaterial;
+
+use bevy_asset::{Asset, AssetId};
+use bevy_ecs::entity::{Entity, EntityHashMap};
+use bevy_mesh::Mesh;
+use bevy_render::{render_resource::ShaderType, sync_world::MainEntity};
+
+use std::hash::{Hash, Hasher};
 use std::ops::Range;
+
+use bytemuck::{Pod, Zeroable};
 
 /// A range of instances allocated within a page.
 #[derive(Debug, Clone, Copy)]
@@ -44,4 +53,59 @@ pub trait InstanceAllocator: Send + Sync + 'static {
 
     /// Returns the number of active pages.
     fn page_count(&self) -> usize;
+}
+
+#[derive(Clone, Copy)]
+pub struct BatchKey<M: Asset> {
+    pub material: AssetId<M>,
+    pub mesh: AssetId<Mesh>,
+    pub gpu_cull: bool,
+}
+
+impl<M: InstancedMaterial> Hash for BatchKey<M> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.material.hash(state);
+        self.mesh.hash(state);
+        self.gpu_cull.hash(state);
+    }
+}
+
+impl<M: InstancedMaterial> PartialEq<Self> for BatchKey<M> {
+    fn eq(&self, other: &Self) -> bool {
+        self.material == other.material
+            && self.mesh == other.mesh
+            && self.gpu_cull == other.gpu_cull
+    }
+}
+
+impl<M: InstancedMaterial> Eq for BatchKey<M> {}
+
+#[derive(Clone, Debug)]
+pub struct BatchInfo {
+    pub page: usize,
+    pub range: Range<u32>,
+}
+
+#[derive(Default)]
+pub struct BatchRanges {
+    pub batches: Vec<BatchInfo>,
+    pub representatives: Vec<(Entity, MainEntity)>,
+    pub batch_lookup: EntityHashMap<u32>,
+}
+
+impl BatchRanges {
+    pub fn clear(&mut self) {
+        self.batches.clear();
+        self.representatives.clear();
+        self.batch_lookup.clear();
+    }
+}
+
+#[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType, Debug)]
+#[repr(C)]
+pub struct BatchMetadata {
+    pub batch_id: u32,
+    pub start_index: u32,
+    pub end_index: u32,
+    pub lod_group_index: u32,
 }

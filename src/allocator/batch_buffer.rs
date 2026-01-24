@@ -1,4 +1,4 @@
-use crate::allocator::resources::BatchMetadata;
+use crate::allocator::core::BatchMetadata;
 use crate::components::InstanceUniforms;
 
 use bevy_render::{
