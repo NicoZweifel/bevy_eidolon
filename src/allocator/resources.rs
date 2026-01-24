@@ -208,7 +208,7 @@ impl InstancePage {
         );
 
         if resized {
-            self.batcher.mark_all_dirty();
+            self.batcher.mark_dirty();
         }
 
         if let (Some(ind), Some(batch), Some(meta)) = (
@@ -216,7 +216,7 @@ impl InstancePage {
             &self.batch_buffer,
             &self.metadata_buffer,
         ) {
-            self.batcher.flush_to_gpu(queue, ind, batch, meta);
+            self.batcher.flush(queue, ind, batch, meta);
         }
     }
 

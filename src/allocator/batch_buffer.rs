@@ -68,7 +68,7 @@ impl BatchBuffer {
     /// Marks all currently used indices as dirty.
     ///
     /// Used when the underlying GPU buffer is resized/recreated and needs a full refresh.
-    pub fn mark_all_dirty(&mut self) {
+    pub fn mark_dirty(&mut self) {
         self.dirty_indices.clear();
         self.dirty_indices.extend(0..self.capacity);
     }
@@ -101,7 +101,7 @@ impl BatchBuffer {
     }
 
     /// Uploads the dirty ranges to the GPU.
-    pub fn flush_to_gpu(
+    pub fn flush(
         &mut self,
         render_queue: &RenderQueue,
         indirect_buffer: &Buffer,
