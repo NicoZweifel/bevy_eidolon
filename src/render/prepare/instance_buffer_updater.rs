@@ -126,7 +126,7 @@ impl<'a> InstanceBufferUpdater<'a> {
             .filter(|i| !i.gpu_cull)
             .filter_map(|input| {
                 self.source_allocator
-                    .get_location(input.entity)
+                    .get(input.entity)
                     .map(|alloc| (input, alloc))
             })
             .map(|(input, alloc)| {

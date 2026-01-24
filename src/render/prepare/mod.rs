@@ -242,7 +242,7 @@ fn free(
     pages: &mut [InstancePage],
     entity: Entity,
 ) {
-    let Some(InstanceAllocation { page, .. }) = source_allocator.get_location(entity) else {
+    let Some(InstanceAllocation { page, .. }) = source_allocator.get(entity) else {
         return;
     };
 
@@ -268,7 +268,7 @@ fn process_allocations(
         .map(|entity| {
             (
                 source_allocator
-                    .get_location(*entity)
+                    .get(*entity)
                     .unwrap_or_else(|| {
                         source_allocator
                             .alloc(

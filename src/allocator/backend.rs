@@ -56,10 +56,10 @@ impl InstanceAllocator for InstanceAllocatorBackend {
             Self::Custom(c) => c.reset(),
         }
     }
-    fn get_location(&self, entity: Entity) -> Option<InstanceAllocation> {
+    fn get(&self, entity: Entity) -> Option<InstanceAllocation> {
         match self {
-            Self::Paged(a) => a.get_location(entity),
-            Self::Custom(c) => c.get_location(entity),
+            Self::Paged(a) => a.get(entity),
+            Self::Custom(c) => c.get(entity),
         }
     }
     fn page_count(&self) -> usize {

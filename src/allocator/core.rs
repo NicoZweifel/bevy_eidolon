@@ -40,7 +40,7 @@ pub trait InstanceAllocator: Send + Sync + 'static {
     fn reset(&mut self);
 
     /// Retrieves the [`InstanceAllocation`] for an entity if it exists.
-    fn get_location(&self, entity: Entity) -> Option<InstanceAllocation>;
+    fn get(&self, entity: Entity) -> Option<InstanceAllocation>;
 
     /// Returns the number of active pages.
     fn page_count(&self) -> usize;

@@ -46,7 +46,7 @@ impl Batcher<'_> {
         }) {
             let offset = self
                 .source_allocator
-                .get_location(input.entity)
+                .get(input.entity)
                 .map(|l| l.offset)
                 .unwrap_or(0);
 

@@ -175,7 +175,7 @@ impl InstanceAllocator for PagedAllocator {
         self.watermarks.clear();
     }
 
-    fn get_location(&self, entity: Entity) -> Option<InstanceAllocation> {
+    fn get(&self, entity: Entity) -> Option<InstanceAllocation> {
         self.allocations
             .get(&entity)
             .map(|page_allocation| (*page_allocation).into())
