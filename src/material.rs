@@ -128,7 +128,7 @@ impl InstancedMaterial for StandardInstancedMaterial {
         if key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
             descriptor.primitive.cull_mode = None;
         }
-       if descriptor.multisample.count > 1 {
+        if descriptor.multisample.count > 1 {
             descriptor.multisample.alpha_to_coverage_enabled = true;
         }
         if key.contains(InstancedMaterialKey::POINTS) {
