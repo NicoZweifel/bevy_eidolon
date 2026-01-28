@@ -88,71 +88,71 @@ pub(crate) fn queue_instanced_material<M>(
         }
 
         for (_batch_index, entity, main_entity, prepared_material, mesh, mesh_instance) in
-      batch_ranges.representatives.iter().enumerate().filter_map(
-        |(index, (entity, main_entity))| {
-          let batch_index = index as u32;
+            batch_ranges.representatives.iter().enumerate().filter_map(
+                |(index, (entity, main_entity))| {
+                    let batch_index = index as u32;
 
-          #[cfg(feature = "trace")]
-          trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
+                    #[cfg(feature = "trace")]
+                    trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
 
-          let material_instance = render_material_instances.instances.get(main_entity)?;
-          let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
-          let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
-          let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
+                    let material_instance = render_material_instances.instances.get(main_entity)?;
+                    let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
+                    let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
+                    let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
 
-          Some((
-            batch_index,
-            entity,
-            main_entity,
-            prepared_material,
-            mesh,
-            mesh_instance,
-          ))
-        },
-      )
-    {
-      let key = InstancedMaterialPipelineKey {
-        mesh_key: view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
-        bind_group_data: prepared_material.key.clone(),
-      };
+                    Some((
+                        batch_index,
+                        entity,
+                        main_entity,
+                        prepared_material,
+                        mesh,
+                        mesh_instance,
+                    ))
+                },
+            )
+        {
+            let key = InstancedMaterialPipelineKey {
+                mesh_key: view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
+                bind_group_data: prepared_material.key.clone(),
+            };
 
-      let pipeline = pipelines
-        .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
-        .unwrap();
+            let pipeline = pipelines
+                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
+                .unwrap();
 
-      let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
+            let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
-      let material_instance = render_material_instances
-        .instances
-        .get(main_entity)
-        .unwrap();
-      let mut hasher = std::collections::hash_map::DefaultHasher::new();
-      material_instance.asset_id.hash(&mut hasher);
-      let material_index = hasher.finish() as u32;
+            let material_instance = render_material_instances
+                .instances
+                .get(main_entity)
+                .unwrap();
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            material_instance.asset_id.hash(&mut hasher);
+            let material_index = hasher.finish() as u32;
 
-      #[cfg(feature = "trace")]
-      trace!(
-        "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
-        vertex_slab, index_slab
-      );
+            #[cfg(feature = "trace")]
+            trace!(
+              "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
+              vertex_slab, index_slab
+            );
 
-      opaque_mask_phases.add(
-        Opaque3dBatchSetKey {
-          pipeline,
-          draw_function: draw_custom,
-          material_bind_group_index: Some(material_index),
-          vertex_slab: vertex_slab.unwrap_or_default(),
-          index_slab,
-          lightmap_slab: None,
-        },
-        Opaque3dBinKey {
-          asset_id: mesh_instance.mesh_asset_id.into(),
-        },
-        (*entity, *main_entity),
-        InputUniformIndex(0),
-        BinnedRenderPhaseType::UnbatchableMesh,
-        ticks.this_run(),
-      );
-    }
+            opaque_mask_phases.add(
+                Opaque3dBatchSetKey {
+                    pipeline,
+                    draw_function: draw_custom,
+                    material_bind_group_index: Some(material_index),
+                    vertex_slab: vertex_slab.unwrap_or_default(),
+                    index_slab,
+                    lightmap_slab: None,
+                },
+                Opaque3dBinKey {
+                    asset_id: mesh_instance.mesh_asset_id.into(),
+                },
+                (*entity, *main_entity),
+                InputUniformIndex(0),
+                BinnedRenderPhaseType::UnbatchableMesh,
+                ticks.this_run(),
+            );
+        }
     }
 }
