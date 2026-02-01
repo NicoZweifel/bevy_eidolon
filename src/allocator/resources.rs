@@ -61,8 +61,8 @@ impl InstancePage {
     /// Flushes the internal batcher to the GPU buffers, resizing if necessary.
     pub fn flush(&mut self, device: &RenderDevice, queue: &RenderQueue, page_id: usize) {
         let batch_capacity = self.batcher.capacity() as u64;
-        let mut resized = false;
 
+        let mut resized = false;
         let mut check_resize = |buffer: &mut Option<Buffer>, size: u64, usage, label: String| {
             let old_size = buffer.as_ref().map(|b| b.size()).unwrap_or(0);
             let aligned = (size + 3) & !3;

@@ -58,25 +58,25 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
             return Ok(());
         }
 
-        let pipeline_res = world.resource::<InstancedComputePipeline<M>>();
-        let pipeline_cache = world.resource::<PipelineCache>();
+        let pipeline = world.resource::<InstancedComputePipeline<M>>();
+        let cache = world.resource::<PipelineCache>();
 
-        let Some(pipeline) = pipeline_res
+        let Some(pipeline) = pipeline
             .pipeline_id
-            .and_then(|id| pipeline_cache.get_compute_pipeline(id))
+            .and_then(|id| cache.get_compute_pipeline(id))
         else {
             return Ok(());
         };
 
-        let Some(global_allocator) = world.get_resource::<GlobalInstanceAllocator<M>>() else {
+        let Some(allocator) = world.get_resource::<GlobalInstanceAllocator<M>>() else {
             return Ok(());
         };
 
-        if global_allocator.pages.is_empty() {
+        if allocator.pages.is_empty() {
             return Ok(());
         }
 
-        let Some(global_cull_buffer) = world.get_resource::<GlobalCullBuffer>() else {
+        let Some(cull_buffer) = world.get_resource::<GlobalCullBuffer>() else {
             return Ok(());
         };
 
@@ -89,11 +89,11 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
                 });
 
         pass.set_pipeline(pipeline);
-        pass.set_bind_group(2, &global_cull_buffer.bind_group, &[]);
+        pass.set_bind_group(2, &cull_buffer.bind_group, &[]);
 
-        let mut pages_dispatched = 0;
+        let mut dispatched = 0;
 
-        for (page_index, page) in global_allocator.pages.iter().enumerate() {
+        for (i, page) in allocator.pages.iter().enumerate() {
             if page.compute_capacity == 0 {
                 continue;
             }
@@ -102,7 +102,7 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
                 #[cfg(feature = "trace")]
                 warn!(
                     "Page {} has capacity {} but no compute_bind_group!",
-                    page_index, page.compute_capacity
+                    i, page.compute_capacity
                 );
                 continue;
             };
@@ -111,7 +111,7 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
                 #[cfg(feature = "trace")]
                 warn!(
                     "Page {} has capacity {} but no common_bind_group!",
-                    page_index, page.compute_capacity
+                    i, page.compute_capacity
                 );
                 continue;
             };
@@ -119,35 +119,34 @@ impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
             pass.set_bind_group(0, compute_bg, &[]);
             pass.set_bind_group(1, common_bg, &[]);
 
-            let total_instances = page.compute_capacity;
+            let instances = page.compute_capacity;
             let workgroup_size = 64;
-            let total_workgroups = (total_instances as f32 / workgroup_size as f32).ceil() as u32;
 
-            if total_workgroups > 0 {
+            let workgroups = (instances as f32 / workgroup_size as f32).ceil() as u32;
+            if workgroups > 0 {
                 #[cfg(feature = "trace")]
                 trace!(
                     "Dispatching Page {}: {} instances, {} workgroups",
-                    page_index, total_instances, total_workgroups
+                    i, instances, workgroups
                 );
 
-                let max_workgroups_per_dim = 65535;
-
-                if total_workgroups > max_workgroups_per_dim {
-                    let x = max_workgroups_per_dim;
-                    let y = (total_workgroups as f32 / max_workgroups_per_dim as f32).ceil() as u32;
+                let max_workgroups = 65535;
+                if workgroups > max_workgroups {
+                    let x = max_workgroups;
+                    let y = (workgroups as f32 / max_workgroups as f32).ceil() as u32;
                     pass.dispatch_workgroups(x, y, 1);
                 } else {
-                    pass.dispatch_workgroups(total_workgroups, 1, 1);
+                    pass.dispatch_workgroups(workgroups, 1, 1);
                 }
-                pages_dispatched += 1;
+                dispatched += 1;
             }
         }
 
         #[cfg(feature = "trace")]
-        if pages_dispatched > 0 {
+        if dispatched > 0 {
             trace!(
                 "Finished Instanced Cull Pass: {} pages dispatched",
-                pages_dispatched
+                dispatched
             );
         }
 
