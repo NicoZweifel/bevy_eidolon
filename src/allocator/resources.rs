@@ -146,16 +146,18 @@ impl InstancePage {
             ));
         }
 
-        if let Some(batch_buffer) = &self.batch_buffer {
-            self.common_bind_group = Some(device.create_bind_group(
-                Some(format!("page_{}_common_bind_group", page_id).as_str()),
-                common_layout,
-                &[BindGroupEntry {
-                    binding: 0,
-                    resource: batch_buffer.as_entire_binding(),
-                }],
-            ));
-        }
+        let Some(batch_buffer) = &self.batch_buffer else {
+            return;
+        };
+
+        self.common_bind_group = Some(device.create_bind_group(
+            Some(format!("page_{}_common_bind_group", page_id).as_str()),
+            common_layout,
+            &[BindGroupEntry {
+                binding: 0,
+                resource: batch_buffer.as_entire_binding(),
+            }],
+        ));
     }
 }
 
