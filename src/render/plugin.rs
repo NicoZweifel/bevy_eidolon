@@ -100,8 +100,12 @@ where
             AllocatorPlugin::<M>::default(),
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
-            InstancedPrepassPlugin::<M>::default(),
         ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            app.add_plugins(InstancedPrepassPlugin::<M>::default());
+        }
 
         let render_app = app.sub_app_mut(RenderApp);
 
