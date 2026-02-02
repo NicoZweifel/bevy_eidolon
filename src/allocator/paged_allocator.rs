@@ -227,11 +227,15 @@ impl From<(usize, Allocation, u32)> for PageAllocation {
 mod tests {
     use super::*;
 
+    fn entity(id: u32) -> Entity {
+        Entity::from_raw_u32(id).unwrap()
+    }
+
     #[test]
     fn test_should_alloc() {
         // Arrange
         let mut allocator = PagedAllocator::default();
-        let e = Entity::from_raw_u32(1).unwrap();
+        let e = entity(1);
 
         // Act
         let res = allocator.alloc(e, 100).expect("Alloc failed");
@@ -247,7 +251,7 @@ mod tests {
     fn test_should_free() {
         // Arrange
         let mut alloc = PagedAllocator::default();
-        let e = Entity::from_raw_u32(1).unwrap();
+        let e = entity(1);
         alloc.alloc(e, 100).expect("Alloc failed");
 
         // Act
@@ -264,13 +268,13 @@ mod tests {
         let mut allocator = PagedAllocator::default();
         allocator.page_size = 100;
 
-        let e1 = Entity::from_raw_u32(1).unwrap();
-        let e2 = Entity::from_raw_u32(2).unwrap();
+        let e1 = entity(1);
+        let e2 = entity(2);
 
-        allocator.alloc(e1, 80).unwrap(); // Page 1
+        allocator.alloc(e1, 80).unwrap();
 
         // Act
-        let allocation = allocator.alloc(e2, 50).unwrap(); // Page 2
+        let allocation = allocator.alloc(e2, 50).unwrap();
 
         // Assert
         assert_eq!(allocation.page, 1);
@@ -283,9 +287,9 @@ mod tests {
     fn test_fragmentation_should_reuse() {
         // Arrange
         let mut allocator = PagedAllocator::default();
-        let e1 = Entity::from_raw_u32(1).unwrap();
-        let e2 = Entity::from_raw_u32(2).unwrap();
-        let e3 = Entity::from_raw_u32(3).unwrap();
+        let e1 = entity(1);
+        let e2 = entity(2);
+        let e3 = entity(3);
 
         // 128 to align with allocator bin precision
         allocator.alloc(e1, 128).unwrap();
@@ -295,9 +299,7 @@ mod tests {
         allocator.free(e2);
 
         // Act
-        let allocation = allocator
-            .alloc(Entity::from_raw_u32(4).unwrap(), 128)
-            .unwrap();
+        let allocation = allocator.alloc(entity(4), 128).unwrap();
 
         // Assert
         assert_eq!(allocation.offset, 128, "Should reuse the freed slot");
