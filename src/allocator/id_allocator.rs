@@ -77,7 +77,7 @@ mod tests {
     }
 
     #[test]
-    fn test_allocate_twice_should_return_same_id() {
+    fn test_alloc_twice_should_return_same_id() {
         // Arrange
         let mut allocator = IdAllocator::default();
         let e = entity(1);
