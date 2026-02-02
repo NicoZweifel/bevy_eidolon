@@ -250,16 +250,16 @@ mod tests {
     #[test]
     fn test_should_free() {
         // Arrange
-        let mut alloc = PagedAllocator::default();
+        let mut allocator = PagedAllocator::default();
         let e = entity(1);
-        alloc.alloc(e, 100).unwrap();
+        allocator.alloc(e, 100).unwrap();
 
         // Act
-        alloc.free(e);
+        allocator.free(e);
 
         // Assert
-        assert_eq!(alloc.active_counts[0], 0);
-        assert_eq!(alloc.watermarks[0], 0);
+        assert_eq!(allocator.active_counts[0], 0);
+        assert_eq!(allocator.watermarks[0], 0);
     }
 
     #[test]
