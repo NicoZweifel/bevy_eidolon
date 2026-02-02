@@ -12,6 +12,9 @@ use std::ops::RangeInclusive;
 #[cfg(feature = "trace")]
 use tracing::trace;
 
+/// Represents a range of instances to be drawn in a single indirect call.
+///
+/// A "Batch" is a collection of instances that share a Mesh and Material.
 #[derive(Clone, Copy, Default)]
 pub struct BatchData {
     pub indirect: DrawIndexedIndirectArgs,

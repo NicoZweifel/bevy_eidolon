@@ -62,6 +62,22 @@ mod tests {
     }
 
     #[test]
+    fn test_should_free() {
+        // Arrange
+        let mut allocator = IdAllocator::default();
+        let e = entity(1);
+        let id = allocator.alloc(e);
+
+        // Act
+        allocator.free(e);
+
+        // Assert
+        assert_eq!(allocator.watermark, 1);
+        assert_eq!(allocator.free_ids[0], id);
+        assert_eq!(allocator.allocations.len(), 0);
+    }
+
+    #[test]
     fn test_alloc_should_generate_sequential_ids() {
         // Arrange
         let mut allocator = IdAllocator::default();

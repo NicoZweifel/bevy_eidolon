@@ -20,7 +20,6 @@ struct BatchMetadata {
     batch_id: u32,
     start_index: u32,
     end_index: u32,
-    lod_group_index: u32,
 }
 
 struct CameraCullData {

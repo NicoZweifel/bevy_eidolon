@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn test_should_overflow_and_alloc_new_page() {
+    fn test_alloc_should_overflow_and_alloc_new_page() {
         // Arrange
         let mut allocator = PagedAllocator::default();
         allocator.page_size = 100;
@@ -284,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fragmentation_should_reuse() {
+    fn test_alloc_should_reuse() {
         // Arrange
         let mut allocator = PagedAllocator::default();
         let e1 = entity(1);

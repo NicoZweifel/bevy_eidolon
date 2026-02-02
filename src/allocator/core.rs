@@ -107,5 +107,4 @@ pub struct BatchMetadata {
     pub batch_id: u32,
     pub start_index: u32,
     pub end_index: u32,
-    pub lod_group_index: u32,
 }

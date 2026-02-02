@@ -83,7 +83,6 @@ impl Batcher<'_> {
                     batch_id: index,
                     start_index: offset,
                     end_index: offset + input.instances.len() as u32,
-                    lod_group_index: index,
                 },
             };
 
