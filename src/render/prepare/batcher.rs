@@ -21,14 +21,14 @@ pub(super) struct Batcher<'a> {
 impl Batcher<'_> {
     pub fn batch(
         &mut self,
-        batcher: &mut crate::allocator::batch_buffer::BatchBuffer,
+        buffer: &mut crate::allocator::batch_buffer::BatchBuffer,
         page_entities: &[Entity],
         input_map: &EntityHashMap<BatchInput>,
         batch_allocator: &IdAllocator,
     ) {
         let max_batch = batch_allocator.watermark as usize;
 
-        batcher.ensure_capacity(max_batch);
+        buffer.ensure_capacity(max_batch);
 
         for (input, index, index_count) in page_entities.iter().filter_map(|entity| {
             let input = input_map.get(entity)?;
@@ -86,7 +86,7 @@ impl Batcher<'_> {
                 },
             };
 
-            batcher.update(index as usize, data);
+            buffer.update(index as usize, data);
         }
     }
 
