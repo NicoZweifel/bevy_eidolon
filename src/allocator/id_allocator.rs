@@ -1,8 +1,8 @@
 use bevy_ecs::entity::{Entity, EntityHashMap};
 
-/// A dense ID allocator that maps sparse [`Entity`] identifiers to contiguous `u32` indices.
+/// A dense ID allocator that maps [`Entity`] keys to contiguous `u32` indices.
 ///
-/// Used to map Entities to indices in a GPU buffer, arrays, or other
+/// Used to map GPU buffers, arrays, or other
 /// dense storage mechanisms where gaps are undesirable.
 #[derive(Default, Debug)]
 pub struct IdAllocator {
