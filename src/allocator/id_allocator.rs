@@ -48,17 +48,30 @@ mod tests {
     }
 
     #[test]
-    fn test_alloc_should_generate_sequential_ids() {
+    fn test_should_alloc() {
         // Arrange
         let mut allocator = IdAllocator::default();
 
         // Act
-        let res1 = allocator.alloc(entity(1));
-        let res2 = allocator.alloc(entity(2));
+        let res = allocator.alloc(entity(1));
 
         // Assert
-        assert_eq!(res1, 0);
-        assert_eq!(res2, 1);
+        assert_eq!(res, 0);
+        assert_eq!(allocator.watermark, 1);
+        assert!(allocator.free_ids.is_empty());
+    }
+
+    #[test]
+    fn test_alloc_should_generate_sequential_ids() {
+        // Arrange
+        let mut allocator = IdAllocator::default();
+        allocator.alloc(entity(1));
+
+        // Act
+        let res = allocator.alloc(entity(2));
+
+        // Assert
+        assert_eq!(res, 1);
         assert_eq!(allocator.watermark, 2);
         assert!(allocator.free_ids.is_empty());
     }
@@ -68,14 +81,13 @@ mod tests {
         // Arrange
         let mut allocator = IdAllocator::default();
         let entity = entity(1);
+        allocator.alloc(entity);
 
         // Act
-        let res1 = allocator.alloc(entity);
-        let res2 = allocator.alloc(entity);
+        let res = allocator.alloc(entity);
 
         // Assert
-        assert_eq!(res1, 0);
-        assert_eq!(res2, 0);
+        assert_eq!(res, 0);
         assert_eq!(allocator.watermark, 1);
     }
 
@@ -119,13 +131,13 @@ mod tests {
     fn test_free_should_handle_double_free() {
         // Arrange
         let mut allocator = IdAllocator::default();
-        let ent = entity(1);
+        let e = entity(1);
 
-        allocator.alloc(ent);
-        allocator.free(ent);
+        allocator.alloc(e);
+        allocator.free(e);
 
         // Act
-        allocator.free(ent);
+        allocator.free(e);
 
         // Assert
         assert_eq!(allocator.free_ids.len(), 1);
@@ -142,14 +154,13 @@ mod tests {
         alloc.alloc(entity(3));
 
         alloc.free(entity(2));
+        alloc.alloc(entity(4));
 
         // Act
-        let res1 = alloc.alloc(entity(4));
-        let res2 = alloc.alloc(entity(5));
+        let res = alloc.alloc(entity(5));
 
         // Assert
-        assert_eq!(res1, 1);
-        assert_eq!(res2, 3);
+        assert_eq!(res, 3);
         assert_eq!(alloc.watermark, 4);
     }
 }
