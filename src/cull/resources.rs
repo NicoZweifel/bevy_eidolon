@@ -1,5 +1,5 @@
-use bevy_ecs::resource::Resource;
-use bevy_math::prelude::*;
+use bevy_ecs::prelude::Resource;
+use bevy_math::Vec4;
 use bevy_render::render_resource::{BindGroup, Buffer, ShaderType};
 
 use bytemuck::{Pod, Zeroable};
@@ -8,13 +8,7 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 pub struct CameraCullData {
     pub view_pos: Vec4,
-}
-
-#[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]
-#[repr(C)]
-pub struct LodCullData {
-    pub visibility_range: Vec4,
-    pub world_from_local: Mat4,
+    pub frustum: [Vec4; 6],
 }
 
 #[derive(Resource)]

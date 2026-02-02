@@ -16,5 +16,6 @@ fn fragment(
     bevy_pbr::pbr_functions::visibility_range_dither(in.clip_position, in.visibility_range_dither);
 #endif
 
-    return instance_uniforms.color;
+    let batch = instance_uniforms[in.i_batch_id];
+    return batch.color;
 }

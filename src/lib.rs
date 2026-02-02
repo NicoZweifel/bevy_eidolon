@@ -7,8 +7,8 @@
 //!
 //! > *"Reality is illusion"*
 //!
-//! This is a generic instanced material, mostly for grass, foliage assemblies, and as a high-performance
-//! replacement for gizmos when writing debugging tools.
+//! This is a generic instanced material, mostly for grass, foliage assemblies but could be used for
+//! fur or particles and as a high-performance replacement for gizmos when writing debugging tools in the future.
 //!
 //! I am planning to use this as a base for other instanced materials,
 //! similar to the `Material` and `MaterialExtension` in Bevy.
@@ -53,16 +53,19 @@
 //!   simple cases), for now it's just a proof of concept.
 
 pub mod material;
-pub mod resources;
 
 pub mod render;
 
 pub mod components;
 
+pub mod allocator;
 pub mod cull;
+pub mod prepass;
+pub mod utils;
 
 pub mod prelude {
     pub use crate::{
-        components::*, cull::prelude::*, material::*, render::prelude::*, resources::*,
+        allocator::prelude::*, components::*, cull::prelude::*, material::*, prepass::prelude::*,
+        render::prelude::*, utils::*,
     };
 }

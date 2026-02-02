@@ -5,40 +5,39 @@ use bevy_render::{
     renderer::RenderContext,
 };
 
-#[cfg(feature = "trace")]
-use tracing::{error, trace, warn};
-
-use crate::components::{
-    GpuDrawIndexedIndirect, InstancedComputeBindGroup, InstancedComputeSourceBuffer,
+use super::resources::GlobalCullBuffer;
+use crate::{
+    allocator::resources::GlobalInstanceAllocator, cull::pipeline::InstancedComputePipeline,
+    material::InstancedMaterial,
 };
-use crate::{cull::pipeline::InstancedComputePipeline, resources::GlobalCullBuffer};
+
+use std::marker::PhantomData;
+
+#[cfg(feature = "trace")]
+use tracing::*;
+
+pub struct InstancedComputeNode<M: InstancedMaterial> {
+    state: InstancedComputeNodeState,
+    _marker: PhantomData<M>,
+}
 
 enum InstancedComputeNodeState {
     Loading,
     Ready,
 }
 
-pub struct InstancedComputeNode {
-    state: InstancedComputeNodeState,
-    query: QueryState<(
-        &'static InstancedComputeSourceBuffer,
-        &'static InstancedComputeBindGroup,
-        &'static GpuDrawIndexedIndirect,
-    )>,
-}
-
-impl FromWorld for InstancedComputeNode {
-    fn from_world(world: &mut World) -> Self {
+impl<M: InstancedMaterial> FromWorld for InstancedComputeNode<M> {
+    fn from_world(_world: &mut World) -> Self {
         Self {
             state: InstancedComputeNodeState::Loading,
-            query: world.query_filtered(),
+            _marker: PhantomData,
         }
     }
 }
 
-impl Node for InstancedComputeNode {
+impl<M: InstancedMaterial> Node for InstancedComputeNode<M> {
     fn update(&mut self, world: &mut World) {
-        let pipeline = world.resource::<InstancedComputePipeline>();
+        let pipeline = world.resource::<InstancedComputePipeline<M>>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
         if let InstancedComputeNodeState::Loading = self.state
@@ -47,8 +46,6 @@ impl Node for InstancedComputeNode {
         {
             self.state = InstancedComputeNodeState::Ready;
         }
-
-        self.query.update_archetypes(world);
     }
 
     fn run(
@@ -61,32 +58,25 @@ impl Node for InstancedComputeNode {
             return Ok(());
         }
 
-        let pipeline_res = world.resource::<InstancedComputePipeline>();
-        let pipeline_cache = world.resource::<PipelineCache>();
+        let pipeline = world.resource::<InstancedComputePipeline<M>>();
+        let cache = world.resource::<PipelineCache>();
 
-        if let Some(id) = pipeline_res.pipeline_id {
-            match pipeline_cache.get_compute_pipeline_state(id) {
-                CachedPipelineState::Err(_err) => {
-                    #[cfg(feature = "trace")]
-                    error!("Instanced Material compute pipeline error: {:?}", _err);
-                }
-                CachedPipelineState::Queued => {
-                    #[cfg(feature = "trace")]
-                    trace!("Instanced Material compute pipeline is still compiling...");
-                }
-                CachedPipelineState::Ok(_) => {
-                    #[cfg(feature = "trace")]
-                    trace!("Instanced Material compute pipeline is ok...");
-                }
-                CachedPipelineState::Creating(_) => {
-                    #[cfg(feature = "trace")]
-                    trace!("Instanced Material compute pipeline is creating...");
-                }
-            }
+        let Some(pipeline) = pipeline
+            .pipeline_id
+            .and_then(|id| cache.get_compute_pipeline(id))
+        else {
+            return Ok(());
+        };
+
+        let Some(allocator) = world.get_resource::<GlobalInstanceAllocator<M>>() else {
+            return Ok(());
+        };
+
+        if allocator.pages.is_empty() {
+            return Ok(());
         }
 
-        let Some(pipeline) = pipeline_cache.get_compute_pipeline(pipeline_res.pipeline_id.unwrap())
-        else {
+        let Some(cull_buffer) = world.get_resource::<GlobalCullBuffer>() else {
             return Ok(());
         };
 
@@ -99,20 +89,65 @@ impl Node for InstancedComputeNode {
                 });
 
         pass.set_pipeline(pipeline);
+        pass.set_bind_group(2, &cull_buffer.bind_group, &[]);
 
-        if let Some(global_buffer) = world.get_resource::<GlobalCullBuffer>() {
-            pass.set_bind_group(1, &global_buffer.bind_group, &[]);
-        } else {
-            #[cfg(feature = "trace")]
-            warn!("No global cull buffer found. Skipping instanced material gpu compute culling.");
-            return Ok(());
+        let mut dispatched = 0;
+
+        for (i, page) in allocator.pages.iter().enumerate() {
+            if page.compute_capacity == 0 {
+                continue;
+            }
+
+            let Some(compute_bg) = &page.compute_bind_group else {
+                #[cfg(feature = "trace")]
+                warn!(
+                    "Page {} has capacity {} but no compute_bind_group!",
+                    i, page.compute_capacity
+                );
+                continue;
+            };
+
+            let Some(common_bg) = &page.common_bind_group else {
+                #[cfg(feature = "trace")]
+                warn!(
+                    "Page {} has capacity {} but no common_bind_group!",
+                    i, page.compute_capacity
+                );
+                continue;
+            };
+
+            pass.set_bind_group(0, compute_bg, &[]);
+            pass.set_bind_group(1, common_bg, &[]);
+
+            let instances = page.compute_capacity;
+            let workgroup_size = 64;
+
+            let workgroups = (instances as f32 / workgroup_size as f32).ceil() as u32;
+            if workgroups > 0 {
+                #[cfg(feature = "trace")]
+                trace!(
+                    "Dispatching Page {}: {} instances, {} workgroups",
+                    i, instances, workgroups
+                );
+
+                let max_workgroups = 65535;
+                if workgroups > max_workgroups {
+                    let x = max_workgroups;
+                    let y = (workgroups as f32 / max_workgroups as f32).ceil() as u32;
+                    pass.dispatch_workgroups(x, y, 1);
+                } else {
+                    pass.dispatch_workgroups(workgroups, 1, 1);
+                }
+                dispatched += 1;
+            }
         }
 
-        for (source, bind_group, _indirect) in self.query.iter_manual(world) {
-            pass.set_bind_group(0, &bind_group.0, &[]);
-
-            let workgroups = (source.count as f32 / 64.0).ceil() as u32;
-            pass.dispatch_workgroups(workgroups, 1, 1);
+        #[cfg(feature = "trace")]
+        if dispatched > 0 {
+            trace!(
+                "Finished Instanced Cull Pass: {} pages dispatched",
+                dispatched
+            );
         }
 
         Ok(())

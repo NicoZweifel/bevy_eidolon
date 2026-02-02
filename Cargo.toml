@@ -1,6 +1,6 @@
 [package]
 name = "bevy_eidolon"
-version = "0.1.0"
+version = "0.2.0-rc.7"
 edition = "2024"
 description = "Generic instanced material for the bevy game engine."
 license = "MIT OR Apache-2.0"
@@ -9,31 +9,33 @@ repository = "https://github.com/NicoZweifel/bevy_feronia"
 exclude = ["assets/", ".github/"]
 
 [dependencies]
-bevy_render = { version = "0.17", default-features = false }
-bevy_derive = { version = "0.17", default-features = false }
-bevy_ecs = { version = "0.17", default-features = false }
-bevy_math = { version = "0.17", default-features = false }
-bevy_reflect = { version = "0.17", default-features = false }
-bevy_utils = { version = "0.17", default-features = false }
-bevy_color= { version = "0.17", default-features = false }
-bevy_asset= { version = "0.17", default-features = false }
-bevy_camera= { version = "0.17", default-features = false }
-bevy_pbr= { version = "0.17", default-features = false }
-bevy_core_pipeline= { version = "0.17", default-features = false }
-bevy_app= { version = "0.17", default-features = false }
-bevy_mesh= { version = "0.17", default-features = false }
-bevy_shader= { version = "0.17", default-features = false }
-bevy_transform= { version = "0.17", default-features = false }
+bevy_render = { version = "0.17.3", default-features = false }
+bevy_derive = { version = "0.17.3", default-features = false }
+bevy_ecs = { version = "0.17.3", default-features = false }
+bevy_math = { version = "0.17.3", default-features = false }
+bevy_reflect = { version = "0.17.3", default-features = false }
+bevy_utils = { version = "0.17.3", default-features = false }
+bevy_color= { version = "0.17.3", default-features = false }
+bevy_asset= { version = "0.17.3", default-features = false }
+bevy_camera= { version = "0.17.3", default-features = false }
+bevy_pbr= { version = "0.17.3", default-features = false }
+bevy_core_pipeline= { version = "0.17.3", default-features = false }
+bevy_app= { version = "0.17.3", default-features = false }
+bevy_mesh= { version = "0.17.3", default-features = false }
+bevy_shader= { version = "0.17.3", default-features = false }
+bevy_transform= { version = "0.17.3", default-features = false }
+bevy_platform= { version = "0.17.3", default-features = false }
 
 bytemuck = "1.24"
 bitflags = "2.10"
+derive_more = "2.1.1"
 
 tracing = { version = "0.1", default-features = false, optional = true }
+offset-allocator = "0.2.0"
 
 [dev-dependencies]
 bevy-inspector-egui = "0.35"
-bevy = { version = "0.17", features = [
-    "dynamic_linking",
+bevy = { version = "0.17.3", features = [
     "file_watcher",
     "embedded_watcher",
     "asset_processor",
@@ -51,6 +53,7 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
+bevy_show_prepass = "0.1.1"
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
 # In some cases they may still signal poor code quality however, so consider commenting out these lines.
@@ -89,3 +92,5 @@ trace = ["dep:tracing"]
 
 [patch.crates-io]
 iyes_perf_ui = { git = "https://github.com/mgi388/iyes_perf_ui", branch = "bevy-0.17" }
+
+

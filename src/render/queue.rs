@@ -1,6 +1,7 @@
+use crate::allocator::prelude::MaterialBatchRanges;
 use crate::prelude::*;
+use crate::render::draw::DrawInstancedMaterial;
 use crate::render::{
-    draw::DrawInstancedMaterial,
     pipeline::{InstancedMaterialPipeline, InstancedMaterialPipelineKey},
     prepared_material::PreparedInstancedMaterial,
 };
@@ -17,14 +18,17 @@ use bevy_render::{
     mesh::allocator::MeshAllocator,
     render_asset::RenderAssets,
     render_phase::DrawFunctions,
+    render_phase::InputUniformIndex,
     render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases},
     render_resource::*,
-    sync_world::MainEntity,
     view::ExtractedView,
     view::Msaa,
 };
 
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
+
+#[cfg(feature = "trace")]
+use tracing::*;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn queue_instanced_material<M>(
@@ -34,13 +38,10 @@ pub(crate) fn queue_instanced_material<M>(
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
+    render_material_instances: Res<RenderInstancedMaterialInstances>,
     render_materials: Res<RenderAssets<PreparedInstancedMaterial<M>>>,
-    material_meshes: Query<
-        (Entity, &MainEntity, &InstancedMeshMaterial<M>),
-        With<InstanceMaterialData>,
-    >,
     mesh_allocator: Res<MeshAllocator>,
-    gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
+    _gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
     mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
     ticks: SystemChangeTick,
     views: Query<(
@@ -50,6 +51,7 @@ pub(crate) fn queue_instanced_material<M>(
         Option<&NormalPrepass>,
         Option<&MotionVectorPrepass>,
     )>,
+    batch_ranges: Res<MaterialBatchRanges<M>>,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
@@ -77,21 +79,40 @@ pub(crate) fn queue_instanced_material<M>(
             view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
         }
 
-        for (entity, main_entity, h_material) in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
-            else {
-                continue;
-            };
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-            let Some(prepared_material) = render_materials.get(&h_material.0) else {
-                continue;
-            };
+        #[cfg(feature = "trace")]
+        if !batch_ranges.representatives.is_empty() {
+            trace!(
+                "queue: processing {} batches",
+                batch_ranges.representatives.len()
+            );
+        }
 
+        for (_batch_index, entity, main_entity, prepared_material, mesh, mesh_instance) in
+            batch_ranges.representatives.iter().enumerate().filter_map(
+                |(index, (entity, main_entity))| {
+                    let batch_index = index as u32;
+
+                    #[cfg(feature = "trace")]
+                    trace!("queue_instanced_material: \n  - render: {entity:?}\n  - main: {main_entity:?}");
+
+                    let material_instance = render_material_instances.instances.get(main_entity)?;
+                    let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
+                    let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
+                    let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
+
+                    Some((
+                        batch_index,
+                        entity,
+                        main_entity,
+                        prepared_material,
+                        mesh,
+                        mesh_instance,
+                    ))
+                },
+            )
+        {
             let key = InstancedMaterialPipelineKey {
-                mesh_key: view_key
-                    | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
+                mesh_key: view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
                 bind_group_data: prepared_material.key.clone(),
             };
 
@@ -101,11 +122,25 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
+            let material_instance = render_material_instances
+                .instances
+                .get(main_entity)
+                .unwrap();
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            material_instance.asset_id.hash(&mut hasher);
+            let material_index = hasher.finish() as u32;
+
+            #[cfg(feature = "trace")]
+            trace!(
+              "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
+              vertex_slab, index_slab
+            );
+
             opaque_mask_phases.add(
                 Opaque3dBatchSetKey {
                     pipeline,
                     draw_function: draw_custom,
-                    material_bind_group_index: None,
+                    material_bind_group_index: Some(material_index),
                     vertex_slab: vertex_slab.unwrap_or_default(),
                     index_slab,
                     lightmap_slab: None,
@@ -113,12 +148,9 @@ pub(crate) fn queue_instanced_material<M>(
                 Opaque3dBinKey {
                     asset_id: mesh_instance.mesh_asset_id.into(),
                 },
-                (entity, *main_entity),
-                mesh_instance.current_uniform_index,
-                BinnedRenderPhaseType::mesh(
-                    mesh_instance.should_batch(),
-                    &gpu_preprocessing_support,
-                ),
+                (*entity, *main_entity),
+                InputUniformIndex(0),
+                BinnedRenderPhaseType::UnbatchableMesh,
                 ticks.this_run(),
             );
         }

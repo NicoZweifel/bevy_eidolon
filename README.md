@@ -7,7 +7,8 @@
 
 > *"Reality is illusion"*
 
-This is a generic instanced material, mostly for grass, foliage assemblies, and as a high-performance replacement for gizmos when writing debugging tools.
+This is a generic instanced material, mostly for grass, foliage assemblies but could be used for
+fur or particles and as a high-performance replacement for gizmos when writing debugging tools in the future.
 
 I am planning to use this as a base for other instanced materials, similar to the `Material` and `MaterialExtension` in Bevy.
 

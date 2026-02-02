@@ -1,11 +1,11 @@
 use bevy_asset::{Asset, Handle};
 use bevy_color::{Color, ColorToComponents};
+use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
 use bevy_render::{
-    batching::NoAutomaticBatching,
     render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
     {
         extract_component::ExtractComponent,
@@ -29,6 +29,18 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
     fn fragment_shader() -> ShaderRef {
         ShaderRef::Default
     }
+    fn prepass_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+
+    /// The compute shader used for culling.
+    fn cull_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+
+    fn disable_prepass(&self) -> bool {
+        false
+    }
 
     fn polygon_mode(&self) -> PolygonMode {
         PolygonMode::Fill
@@ -43,10 +55,6 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
     }
 
     fn double_sided(&self) -> bool {
-        false
-    }
-
-    fn gpu_cull(&self) -> bool {
         false
     }
 
@@ -65,10 +73,10 @@ pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync +
 #[bind_group_data(InstancedMaterialKey)]
 pub struct StandardInstancedMaterial {
     pub debug: bool,
-    pub gpu_cull: bool,
     pub debug_color: Color,
     pub polygon_mode: PolygonMode,
     pub double_sided: bool,
+    pub disable_prepass: bool,
 }
 
 impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
@@ -76,10 +84,6 @@ impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
         let mut key = InstancedMaterialKey::empty();
         if material.debug {
             key.insert(InstancedMaterialKey::DEBUG);
-        }
-
-        if material.gpu_cull {
-            key.insert(InstancedMaterialKey::GPU_CULL);
         }
 
         if material.double_sided {
@@ -97,6 +101,10 @@ impl From<&StandardInstancedMaterial> for InstancedMaterialKey {
 }
 
 impl InstancedMaterial for StandardInstancedMaterial {
+    fn disable_prepass(&self) -> bool {
+        self.disable_prepass
+    }
+
     fn polygon_mode(&self) -> PolygonMode {
         self.polygon_mode
     }
@@ -112,10 +120,6 @@ impl InstancedMaterial for StandardInstancedMaterial {
         self.double_sided
     }
 
-    fn gpu_cull(&self) -> bool {
-        self.gpu_cull
-    }
-
     fn specialize(
         descriptor: &mut RenderPipelineDescriptor,
         _layout: &MeshVertexBufferLayoutRef,
@@ -124,11 +128,9 @@ impl InstancedMaterial for StandardInstancedMaterial {
         if key.contains(InstancedMaterialKey::DOUBLE_SIDED) {
             descriptor.primitive.cull_mode = None;
         }
-
-        if key.contains(InstancedMaterialKey::GPU_CULL) {
-            // TODO
+        if descriptor.multisample.count > 1 {
+            descriptor.multisample.alpha_to_coverage_enabled = true;
         }
-
         if key.contains(InstancedMaterialKey::POINTS) {
             descriptor.primitive.polygon_mode = PolygonMode::Point;
         }
@@ -163,8 +165,7 @@ impl InstancedMaterialUniforms {
     }
 }
 
-#[derive(Component, Clone, Debug)]
-#[require(NoAutomaticBatching)]
+#[derive(Component, Clone, Debug, Deref, DerefMut)]
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;
@@ -190,9 +191,8 @@ bitflags! {
     #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Pod, Zeroable)]
     pub struct InstancedMaterialKey: u64 {
         const DEBUG = 1 << 0;
-        const GPU_CULL = 1 << 2;
-        const LINES = 1 << 3;
-        const POINTS = 1 << 4;
-        const DOUBLE_SIDED = 1<< 5;
+        const LINES = 1 << 2;
+        const POINTS = 1 << 3;
+        const DOUBLE_SIDED = 1<< 4;
     }
 }

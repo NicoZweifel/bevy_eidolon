@@ -1,6 +1,6 @@
 #define_import_path bevy_eidolon::render::utils
 
-fn calculate_instance_world_matrix(
+fn calc_instance_world_matrix(
     i_pos_scale: vec4<f32>,
     i_rotation: f32,
     parent_transform: mat4x4<f32>

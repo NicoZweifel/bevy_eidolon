@@ -13,23 +13,33 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::prelude::InstancedMaterial;
 
+use bevy_camera::primitives::Aabb;
+use bevy_render::render_resource::ShaderType;
 use bevy_transform::prelude::GlobalTransform;
+use derive_more::{From, Into};
 use std::fmt;
 use std::hash::Hash;
 use std::sync::Arc;
 
 /// Marker component to opt in to GPU-driven culling/preparation.
-#[derive(Component, Clone, Copy, Default, ExtractComponent)]
+#[derive(Component, Clone, Copy, Debug, Default, ExtractComponent, Reflect)]
+#[reflect(Component, Clone, Debug)]
 pub struct GpuCullCompute;
 
 /// Sets the material color.
 ///
 /// Corresponds to `instance_uniforms.color` in shaders.
-#[derive(Component, Clone, Copy, Debug, Reflect, Default)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Default, From, Into, Deref, DerefMut)]
 #[reflect(Component, Clone, Debug)]
 pub struct InstanceColor(pub Color);
 
-#[derive(Clone, Copy, Pod, Zeroable, Default)]
+impl InstanceColor {
+    pub fn new(color: impl Into<Color>) -> Self {
+        Self(color.into())
+    }
+}
+
+#[derive(Clone, Copy, Pod, Zeroable, Default, ShaderType)]
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec3,
@@ -37,7 +47,21 @@ pub struct InstanceData {
 
     pub rotation: f32,
     pub index: u32,
-    pub _padding: [u32; 2],
+    pub batch_id: u32,
+    pub seed: u32,
+}
+
+impl InstanceData {
+    pub fn invalid() -> Self {
+        Self {
+            batch_id: 0xFFFFFFFF,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_batch_id(self, batch_id: u32) -> Self {
+        Self { batch_id, ..self }
+    }
 }
 
 #[derive(Component, Clone, Reflect)]
@@ -60,21 +84,28 @@ impl fmt::Debug for InstanceMaterialData {
 }
 
 impl ExtractComponent for InstanceMaterialData {
-    type QueryData = (&'static Self, &'static GlobalTransform);
-    type QueryFilter = ();
-    type Out = (Self, GlobalTransform);
+    type QueryData = (&'static Self, &'static GlobalTransform, &'static Aabb);
+    type QueryFilter = Or<(Changed<Self>, Changed<GlobalTransform>, Changed<Aabb>)>;
+    type Out = (Self, GlobalTransform, Aabb);
 
     fn extract_component(
-        (data, transform): QueryItem<'_, '_, Self::QueryData>,
+        (data, transform, aabb): QueryItem<'_, '_, Self::QueryData>,
     ) -> Option<Self::Out> {
-        Some((data.clone(), *transform))
+        Some((data.clone(), *transform, *aabb))
     }
 }
+
+#[derive(
+    Component, Deref, DerefMut, Default, Clone, Copy, Reflect, Debug, From, Into, ExtractComponent,
+)]
+#[reflect(Component, Clone, Debug)]
+pub struct InstanceHistory(pub Mat4);
 
 #[derive(Component)]
 pub struct InstanceBuffer {
     pub buffer: Buffer,
     pub length: usize,
+    pub capacity: u32,
 }
 
 #[derive(Component)]
@@ -88,12 +119,15 @@ pub struct InstanceLodBuffer {
     pub buffer: Buffer,
 }
 
-#[derive(Clone, Copy, Pod, Zeroable, Default)]
+#[derive(Clone, Copy, Pod, Zeroable, ShaderType, Default)]
 #[repr(C)]
 pub struct InstanceUniforms {
     pub color: LinearRgba,
     pub visibility_range: Vec4,
     pub world_from_local: Mat4,
+    pub previous_world_from_local: Mat4,
+    pub aabb_center: Vec4,
+    pub aabb_half_extents: Vec4,
 }
 
 impl From<&InstanceMaterialData> for InstanceUniforms {
@@ -101,13 +135,14 @@ impl From<&InstanceMaterialData> for InstanceUniforms {
         InstanceUniforms {
             color: value.color,
             visibility_range: value.visibility_range,
+            aabb_half_extents: Vec4::splat(f32::MAX),
             ..default()
         }
     }
 }
 
 #[derive(Component)]
-pub struct InstancedCombinedBindGroup(pub BindGroup);
+pub struct InstanceBindGroup(pub BindGroup);
 
 #[derive(Component)]
 pub struct InstanceUniformBuffer {
@@ -118,6 +153,7 @@ pub struct InstanceUniformBuffer {
 pub struct InstancedComputeSourceBuffer {
     pub buffer: Buffer,
     pub count: u32,
+    pub capacity: u32,
 }
 
 #[derive(Component)]
@@ -138,4 +174,10 @@ where
     fn extract_component(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
         Some(item.clone())
     }
+}
+
+#[derive(Component, Clone, Copy, Debug, Default)]
+pub struct InstanceBatch {
+    pub batch_id: u32,
+    pub offset: u32,
 }

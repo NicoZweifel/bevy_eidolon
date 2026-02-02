@@ -1,8 +1,8 @@
 #import bevy_pbr::mesh_view_bindings::view
-#import bevy_pbr::mesh_bindings::mesh
 
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
+#import bevy_pbr::mesh_types::MESH_FLAGS_SHADOW_RECEIVER_BIT
 
 #import bevy_eidolon::render::utils
 #import bevy_eidolon::render::bindings::instance_uniforms
@@ -19,7 +19,8 @@ struct CustomMaterialUniform {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_color = textureSample(base_color_texture, base_color_sampler, in.uv);
-    let base_color = material.color * tex_color * instance_uniforms.color;
+    let batch = instance_uniforms[in.i_batch_id];
+    let base_color = material.color * tex_color * batch.color;
 
     var pbr_input: pbr_types::PbrInput = pbr_types::pbr_input_new();
 
@@ -33,7 +34,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     pbr_input.frag_coord = in.clip_position;
     pbr_input.world_position = in.world_position;
 
-    pbr_input.flags = mesh[0].flags;
+    pbr_input.flags = MESH_FLAGS_SHADOW_RECEIVER_BIT;
     pbr_input.is_orthographic = view.clip_from_view[3].w == 1.0;
 
     pbr_input.world_normal = pbr_functions::prepare_world_normal(
