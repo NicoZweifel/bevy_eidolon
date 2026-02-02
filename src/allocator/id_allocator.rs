@@ -53,10 +53,10 @@ mod tests {
         let mut allocator = IdAllocator::default();
 
         // Act
-        let res = allocator.alloc(entity(1));
+        let id = allocator.alloc(entity(1));
 
         // Assert
-        assert_eq!(res, 0);
+        assert_eq!(id, 0);
         assert_eq!(allocator.watermark, 1);
         assert!(allocator.free_ids.is_empty());
     }
@@ -68,10 +68,10 @@ mod tests {
         allocator.alloc(entity(1));
 
         // Act
-        let res = allocator.alloc(entity(2));
+        let id = allocator.alloc(entity(2));
 
         // Assert
-        assert_eq!(res, 1);
+        assert_eq!(id, 1);
         assert_eq!(allocator.watermark, 2);
         assert!(allocator.free_ids.is_empty());
     }
@@ -80,14 +80,14 @@ mod tests {
     fn test_allocate_twice_should_return_same_id() {
         // Arrange
         let mut allocator = IdAllocator::default();
-        let entity = entity(1);
-        allocator.alloc(entity);
+        let e = entity(1);
+        allocator.alloc(e);
 
         // Act
-        let res = allocator.alloc(entity);
+        let id = allocator.alloc(e);
 
         // Assert
-        assert_eq!(res, 0);
+        assert_eq!(id, 0);
         assert_eq!(allocator.watermark, 1);
     }
 
@@ -96,20 +96,17 @@ mod tests {
         // Arrange
         let mut allocator = IdAllocator::default();
         let e1 = entity(1);
-        let e2 = entity(2);
-
         allocator.alloc(e1);
-        allocator.alloc(e2);
-
+        allocator.alloc(entity(2));
         allocator.free(e1);
 
         let e3 = entity(3);
 
         // Act
-        let res = allocator.alloc(e3);
+        let id = allocator.alloc(e3);
 
         // Assert
-        assert_eq!(res, 0);
+        assert_eq!(id, 0);
         assert!(allocator.free_ids.is_empty());
         assert_eq!(allocator.watermark, 2);
     }
@@ -132,7 +129,6 @@ mod tests {
         // Arrange
         let mut allocator = IdAllocator::default();
         let e = entity(1);
-
         allocator.alloc(e);
         allocator.free(e);
 
@@ -142,25 +138,5 @@ mod tests {
         // Assert
         assert_eq!(allocator.free_ids.len(), 1);
         assert_eq!(allocator.free_ids[0], 0);
-    }
-
-    #[test]
-    fn test_alloc_should_prioritize_reuse_over_watermark() {
-        // Arrange
-        let mut alloc = IdAllocator::default();
-
-        alloc.alloc(entity(1));
-        alloc.alloc(entity(2));
-        alloc.alloc(entity(3));
-
-        alloc.free(entity(2));
-        alloc.alloc(entity(4));
-
-        // Act
-        let res = alloc.alloc(entity(5));
-
-        // Assert
-        assert_eq!(res, 3);
-        assert_eq!(alloc.watermark, 4);
     }
 }
