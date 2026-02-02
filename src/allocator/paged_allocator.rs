@@ -238,7 +238,7 @@ mod tests {
         let e = entity(1);
 
         // Act
-        let allocation = allocator.alloc(e, 100).expect("Alloc failed");
+        let allocation = allocator.alloc(e, 100).unwrap();
 
         // Assert
         assert_eq!(allocation.page, 0);
@@ -252,7 +252,7 @@ mod tests {
         // Arrange
         let mut alloc = PagedAllocator::default();
         let e = entity(1);
-        alloc.alloc(e, 100).expect("Alloc failed");
+        alloc.alloc(e, 100).unwrap();
 
         // Act
         alloc.free(e);
