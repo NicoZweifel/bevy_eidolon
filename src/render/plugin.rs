@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 use crate::allocator::prelude::AllocatorPlugin;
 use crate::cull::prepare::prepare_global_cull_buffer;
 use crate::prelude::*;
-use crate::prepass::plugin::InstancedPrepassPlugin;
+use crate::prepass::prelude::InstancedPrepassPlugin;
 use crate::render::{
     draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
     prepared_material::PreparedInstancedMaterial, queue::*,
@@ -101,6 +101,8 @@ where
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
         ));
+
+        app.add_plugins(InstancedPrepassPlugin::<M>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
 
