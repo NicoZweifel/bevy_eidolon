@@ -238,11 +238,11 @@ mod tests {
         let e = entity(1);
 
         // Act
-        let res = allocator.alloc(e, 100).expect("Alloc failed");
+        let allocation = allocator.alloc(e, 100).expect("Alloc failed");
 
         // Assert
-        assert_eq!(res.page, 0);
-        assert_eq!(res.offset, 0);
+        assert_eq!(allocation.page, 0);
+        assert_eq!(allocation.offset, 0);
         assert_eq!(allocator.active_counts[0], 100);
         assert_eq!(allocator.watermarks[0], 100);
     }
@@ -302,6 +302,6 @@ mod tests {
         let allocation = allocator.alloc(entity(4), 128).unwrap();
 
         // Assert
-        assert_eq!(allocation.offset, 128, "Should reuse the freed slot");
+        assert_eq!(allocation.offset, 128);
     }
 }
