@@ -4,7 +4,6 @@ use std::marker::PhantomData;
 use bevy_asset::{AssetServer, Handle};
 use bevy_core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
 use bevy_core_pipeline::prepass::prepass_target_descriptors;
-use bevy_ecs::error;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
