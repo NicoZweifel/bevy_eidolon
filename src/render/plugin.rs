@@ -2,20 +2,19 @@ use bevy_app::{App, Plugin, PreUpdate};
 use bevy_asset::{AssetApp, UntypedAssetId, embedded_asset};
 use bevy_camera::prelude::ViewVisibility;
 use bevy_core_pipeline::core_3d::Opaque3d;
-use bevy_ecs::{component::Tick, prelude::*};
+use bevy_ecs::{change_detection::Tick, prelude::*};
 use bevy_mesh::Mesh3d;
 use bevy_platform::collections::hash_map::Entry;
-use bevy_render::sync_world::{MainEntity, MainEntityHashMap};
 use bevy_render::{
     Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
-    extract_component::ExtractComponentPlugin, render_asset::RenderAssetPlugin,
-    render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines,
+    extract_component::ExtractComponentPlugin,
+    render_asset::RenderAssetPlugin,
+    render_phase::AddRenderCommand,
+    render_resource::SpecializedMeshPipelines,
+    sync_world::{MainEntity, MainEntityHashMap},
 };
 use bevy_shader::load_shader_library;
 use bevy_transform::prelude::GlobalTransform;
-
-use std::hash::Hash;
-use std::marker::PhantomData;
 
 use crate::allocator::prelude::AllocatorPlugin;
 use crate::cull::prepare::prepare_global_cull_buffer;
@@ -25,6 +24,9 @@ use crate::render::{
     draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
     prepared_material::PreparedInstancedMaterial, queue::*,
 };
+
+use std::hash::Hash;
+use std::marker::PhantomData;
 
 /// A SystemSet for ordering instanced material extraction.
 #[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]

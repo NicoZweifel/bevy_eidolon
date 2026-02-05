@@ -3,7 +3,7 @@ use crate::render::pipeline::InstancedMaterialPipeline;
 use bevy_asset::AssetId;
 use bevy_ecs::system::SystemParamItem;
 use bevy_ecs::system::lifetimeless::SRes;
-use bevy_render::render_resource::{BindGroup, BindGroupEntry};
+use bevy_render::render_resource::{BindGroup, BindGroupEntry, PipelineCache};
 use bevy_render::{
     render_asset::{PrepareAssetError, RenderAsset},
     render_resource::{AsBindGroup, AsBindGroupError},
@@ -34,17 +34,20 @@ impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
     type Param = (
         SRes<RenderDevice>,
         SRes<InstancedMaterialPipeline<M>>,
+        SRes<PipelineCache>,
         <M as AsBindGroup>::Param,
     );
 
     fn prepare_asset(
         source_asset: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
-        (render_device, pipeline, material_params): &mut SystemParamItem<Self::Param>,
+        (render_device, pipeline, pipeline_cache, material_params): &mut SystemParamItem<
+            Self::Param,
+        >,
         _previous_asset: Option<&Self>,
     ) -> bevy_ecs::error::Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match source_asset.unprepared_bind_group(
-            &pipeline.material_layout,
+            &pipeline_cache.get_bind_group_layout(&pipeline.material_layout),
             render_device,
             material_params,
             false,
@@ -61,7 +64,7 @@ impl<M: InstancedMaterial> RenderAsset for PreparedInstancedMaterial<M> {
 
                 let bind_group = render_device.create_bind_group(
                     Some("instanced_material_user_bind_group"),
-                    &pipeline.material_layout,
+                    &pipeline_cache.get_bind_group_layout(&pipeline.material_layout),
                     &entries,
                 );
 

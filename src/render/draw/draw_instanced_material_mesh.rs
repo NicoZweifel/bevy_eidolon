@@ -121,7 +121,7 @@ where
                     return RenderCommandResult::Skip;
                 };
 
-                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
+                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), *index_format);
 
                 let count = range.end - range.start;
                 let offset = (range.start as u64) * size_of::<DrawIndexedIndirectArgs>() as u64;
