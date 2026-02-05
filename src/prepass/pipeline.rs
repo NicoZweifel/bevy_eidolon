@@ -83,7 +83,7 @@ where
         &self,
         key: Self::Key,
         layout: &MeshVertexBufferLayoutRef,
-    ) -> error::Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
+    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut shader_defs = Vec::new();
         shader_defs.push("PREPASS_PIPELINE".into());
         shader_defs.push("VISIBILITY_RANGE_DITHER".into());
