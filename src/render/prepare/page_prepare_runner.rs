@@ -1,18 +1,15 @@
-use crate::components::InstanceData;
-use crate::prelude::{
-    BufferBoundsCheck, InstanceAllocator, InstanceAllocatorBackend, InstancePage,
-};
+use crate::allocator::core::BatchRanges;
+use crate::prelude::*;
 use crate::render::prepare::{
     batcher::Batcher, core::BatchInput, core::Write, instance_buffer_updater::InstanceBufferUpdater,
 };
 
-use crate::allocator::core::BatchRanges;
 use bevy_ecs::entity::{Entity, EntityHashMap};
 use bevy_render::{
     mesh::RenderMesh,
     mesh::allocator::MeshAllocator,
     render_asset::RenderAssets,
-    render_resource::BindGroupLayout,
+    render_resource::{BindGroupLayoutDescriptor, PipelineCache},
     renderer::{RenderDevice, RenderQueue},
 };
 
@@ -23,12 +20,13 @@ pub(super) struct PagePrepareRunner<'a> {
     pub(super) batch_ranges: &'a mut BatchRanges,
 
     pub(super) device: &'a RenderDevice,
+    pub(super) pipeline_cache: &'a PipelineCache,
     pub(super) queue: &'a RenderQueue,
     pub(super) meshes: &'a RenderAssets<RenderMesh>,
     pub(super) mesh_allocator: &'a MeshAllocator,
 
-    pub(super) common_layout: &'a BindGroupLayout,
-    pub(super) compute_layout: Option<&'a BindGroupLayout>,
+    pub(super) common_layout: &'a BindGroupLayoutDescriptor,
+    pub(super) compute_layout: Option<&'a BindGroupLayoutDescriptor>,
 
     pub(super) material_name: &'static str,
 }
@@ -110,6 +108,7 @@ impl<'a> PagePrepareRunner<'a> {
     fn update_page(&mut self) {
         self.page.update(
             self.device,
+            self.pipeline_cache,
             self.id,
             self.common_layout,
             self.compute_layout,

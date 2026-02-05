@@ -4,12 +4,11 @@ use std::marker::PhantomData;
 use bevy_asset::{AssetServer, Handle};
 use bevy_core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
 use bevy_core_pipeline::prepass::prepass_target_descriptors;
-use bevy_ecs::error;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
-    BindGroupLayout, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
+    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
     MultisampleState, PrimitiveState, RenderPipelineDescriptor, SpecializedMeshPipeline,
     SpecializedMeshPipelineError, StencilState, VertexAttribute, VertexState, VertexStepMode,
 };
@@ -23,14 +22,14 @@ use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipeli
 
 #[derive(Resource)]
 pub struct InstancedPrepassPipeline<M: InstancedMaterial> {
-    pub view_layout_motion_vectors: BindGroupLayout,
-    pub view_layout_no_motion_vectors: BindGroupLayout,
+    pub view_layout_motion_vectors: BindGroupLayoutDescriptor,
+    pub view_layout_no_motion_vectors: BindGroupLayoutDescriptor,
 
-    pub empty_layout: BindGroupLayout,
+    pub empty_layout: BindGroupLayoutDescriptor,
     pub mesh_layouts: MeshLayouts,
 
-    pub common_layout: BindGroupLayout,
-    pub material_layout: BindGroupLayout,
+    pub common_layout: BindGroupLayoutDescriptor,
+    pub material_layout: BindGroupLayoutDescriptor,
 
     pub prepass_shader: Handle<Shader>,
 
@@ -83,7 +82,7 @@ where
         &self,
         key: Self::Key,
         layout: &MeshVertexBufferLayoutRef,
-    ) -> error::Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
+    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut shader_defs = Vec::new();
         shader_defs.push("PREPASS_PIPELINE".into());
         shader_defs.push("VISIBILITY_RANGE_DITHER".into());

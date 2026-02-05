@@ -5,7 +5,9 @@ use crate::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::prelude::*;
 use bevy_render::{
-    render_resource::{BindGroup, BindGroupEntry, BindGroupLayout, Buffer, BufferUsages},
+    render_resource::{
+        BindGroup, BindGroupEntry, BindGroupLayoutDescriptor, Buffer, BufferUsages, PipelineCache,
+    },
     renderer::{RenderDevice, RenderQueue},
 };
 
@@ -111,9 +113,10 @@ impl InstancePage {
     pub fn update(
         &mut self,
         device: &RenderDevice,
+        pipeline_cache: &PipelineCache,
         page_id: usize,
-        common_layout: &BindGroupLayout,
-        compute_layout: Option<&BindGroupLayout>,
+        common_layout: &BindGroupLayoutDescriptor,
+        compute_layout: Option<&BindGroupLayoutDescriptor>,
         capacity: u32,
     ) {
         self.compute_capacity = capacity;
@@ -124,7 +127,7 @@ impl InstancePage {
         {
             self.compute_bind_group = Some(device.create_bind_group(
                 Some(format!("page_{}_compute_bind_group", page_id).as_str()),
-                layout,
+                &pipeline_cache.get_bind_group_layout(layout),
                 &[
                     BindGroupEntry {
                         binding: 0,
@@ -152,7 +155,7 @@ impl InstancePage {
 
         self.common_bind_group = Some(device.create_bind_group(
             Some(format!("page_{}_common_bind_group", page_id).as_str()),
-            common_layout,
+            &pipeline_cache.get_bind_group_layout(common_layout),
             &[BindGroupEntry {
                 binding: 0,
                 resource: batch_buffer.as_entire_binding(),

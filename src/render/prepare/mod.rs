@@ -26,6 +26,7 @@ use bevy_render::{
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::default;
 
+use bevy_render::render_resource::PipelineCache;
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::mem::size_of;
@@ -51,6 +52,7 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
     )>,
     instanced_materials: Query<&InstancedMeshMaterial<M>>,
     mut cached_state: Local<EntityHashMap<CachedInputState>>,
+    pipeline_cache: Res<PipelineCache>,
 ) {
     let CollectInputResult {
         inputs,
@@ -75,6 +77,7 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
     batch_ranges.clear();
 
     let count = source_allocator.page_count();
+    let pipeline_cache = pipeline_cache.into_inner();
 
     for (id, entities) in (0..count).filter_map(|id| entities.get(&id).map(|e| (id, e))) {
         let empty = Vec::new();
@@ -85,6 +88,7 @@ pub(crate) fn prepare_instanced_material_buffers<M: InstancedMaterial>(
             id,
             page,
             source_allocator,
+            pipeline_cache,
             batch_ranges: &mut batch_ranges,
             device: &render_device,
             queue: &render_queue,

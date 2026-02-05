@@ -77,8 +77,8 @@ pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
     pub mesh_pipeline: MeshPipeline,
-    pub common_layout: BindGroupLayout,
-    pub material_layout: BindGroupLayout,
+    pub common_layout: BindGroupLayoutDescriptor,
+    pub material_layout: BindGroupLayoutDescriptor,
     pub _phantom: PhantomData<M>,
 }
 
@@ -89,12 +89,10 @@ impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
         let asset_server = world.resource::<AssetServer>();
 
         let material_entries = M::bind_group_layout_entries(render_device, false);
-        let material_layout = render_device.create_bind_group_layout(
-            format!("instanced_material_layout_{}", std::any::type_name::<M>()).as_str(),
-            &material_entries,
-        );
+        let material_label = format!("instanced_material_layout_{}", std::any::type_name::<M>());
+        let material_layout = BindGroupLayoutDescriptor::new(material_label, &material_entries);
 
-        let common_layout = render_device.create_bind_group_layout(
+        let common_layout = BindGroupLayoutDescriptor::new(
             "instanced_material_common_layout",
             &BindGroupLayoutEntries::single(
                 ShaderStages::VERTEX_FRAGMENT | ShaderStages::COMPUTE,

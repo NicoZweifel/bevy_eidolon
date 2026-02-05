@@ -5,12 +5,12 @@ use bevy_camera::Camera;
 use bevy_camera::primitives::Frustum;
 use bevy_ecs::prelude::*;
 use bevy_math::Vec4;
+use bevy_render::render_resource::PipelineCache;
 use bevy_render::{
     render_resource::{BindGroupEntry, BufferInitDescriptor, BufferUsages},
     renderer::{RenderDevice, RenderQueue},
     view::ExtractedView,
 };
-
 use bytemuck::bytes_of;
 
 pub fn prepare_global_cull_buffer<M: InstancedMaterial>(
@@ -20,6 +20,7 @@ pub fn prepare_global_cull_buffer<M: InstancedMaterial>(
     render_queue: Res<RenderQueue>,
     global_buffer: Option<ResMut<GlobalCullBuffer>>,
     pipeline: Res<InstancedComputePipeline<M>>,
+    pipeline_cache: Res<PipelineCache>,
 ) {
     let Some((view, frustum, _)) = views.iter().find(|(_, _, cam)| cam.is_active) else {
         return;
@@ -45,7 +46,7 @@ pub fn prepare_global_cull_buffer<M: InstancedMaterial>(
 
         let bind_group = render_device.create_bind_group(
             "instanced_global_cull_bind_group",
-            &pipeline.global_layout,
+            &pipeline_cache.get_bind_group_layout(&pipeline.global_layout),
             &[BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
