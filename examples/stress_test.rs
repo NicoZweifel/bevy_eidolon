@@ -27,6 +27,7 @@ use example::*;
 
 use rand::{Rng, rng};
 use std::sync::Arc;
+use bevy_camera::visibility::NoAutoAabb;
 
 fn main() -> AppExit {
     App::new()
@@ -225,6 +226,8 @@ fn spawn_chunk(
             visibility_range: [0.0, 0.0, 2000.0, 2000.0].into(),
         },
         GpuCullCompute,
+        // required since bevy 0.18 if adding Aabb manually.
+        NoAutoAabb,
         Aabb {
             center: Vec3A::ZERO,
             half_extents: Vec3A::splat(1000.0),
