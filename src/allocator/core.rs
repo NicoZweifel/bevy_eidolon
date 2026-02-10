@@ -89,14 +89,14 @@ pub struct BatchInfo {
 #[derive(Default)]
 pub struct BatchRanges {
     pub batches: Vec<BatchInfo>,
-    pub representatives: Vec<(Entity, MainEntity)>,
+    pub entities: Vec<(Entity, MainEntity)>,
     pub batch_lookup: EntityHashMap<u32>,
 }
 
 impl BatchRanges {
     pub fn clear(&mut self) {
         self.batches.clear();
-        self.representatives.clear();
+        self.entities.clear();
         self.batch_lookup.clear();
     }
 }

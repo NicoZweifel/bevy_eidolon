@@ -11,6 +11,7 @@ use bevy_render::{
     render_resource::SpecializedMeshPipelines,
 };
 
+use bevy_core_pipeline::deferred::Opaque3dDeferred;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -33,6 +34,7 @@ where
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .add_render_command::<Opaque3dPrepass, DrawInstancedPrepass<M>>()
+            .add_render_command::<Opaque3dDeferred, DrawInstancedPrepass<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedPrepassPipeline<M>>>()
             .add_systems(
                 RenderStartup,
