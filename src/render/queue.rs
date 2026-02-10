@@ -147,7 +147,7 @@ pub(crate) fn queue_instanced_material<M>(
                 view_layers
                     .unwrap_or_default()
                     .intersects(&mesh_instance.render_layers.clone().unwrap_or_default())
-                    .then(|| (entity, main_entity, prepared_material, mesh, mesh_instance))
+                    .then_some((entity, main_entity, prepared_material, mesh, mesh_instance))
             })
         {
             let key = InstancedMaterialPipelineKey {
