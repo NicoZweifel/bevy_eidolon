@@ -8,7 +8,6 @@ use crate::render::{
 use bevy_core_pipeline::{
     core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey},
     prepass::{DeferredPrepass, DepthPrepass, MotionVectorPrepass, NormalPrepass},
-    tonemapping::{DebandDither, Tonemapping},
 };
 use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{
@@ -56,8 +55,6 @@ pub(crate) fn queue_instanced_material<M>(
             ),
             Has<EnvironmentMapLight>,
             Has<ScreenSpaceAmbientOcclusion>,
-            Option<&Tonemapping>,
-            Option<&DebandDither>,
             Option<&RenderLayers>,
             Has<ExtractedAtmosphere>,
         ),
@@ -67,19 +64,8 @@ pub(crate) fn queue_instanced_material<M>(
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
 {
-    for (
-        view,
-        msaa,
-        (
-            (depth, normal, motion, deferred),
-            env_map,
-            ssao,
-            tonemapping,
-            deband,
-            view_layers,
-            atmosphere,
-        ),
-    ) in &views
+    for (view, msaa, ((depth, normal, motion, deferred), env_map, ssao, view_layers, atmosphere)) in
+        &views
     {
         let Some(opaque_mask_phases) = opaque_render_phases.get_mut(&view.retained_view_entity)
         else {
@@ -99,17 +85,6 @@ pub(crate) fn queue_instanced_material<M>(
 
         if ssao {
             view_key |= MeshPipelineKey::SCREEN_SPACE_AMBIENT_OCCLUSION;
-        }
-        if let Some(tonemapping) = tonemapping {
-            if *tonemapping != Tonemapping::None {
-                view_key |= MeshPipelineKey::TONEMAP_IN_SHADER;
-            }
-        }
-
-        if let Some(deband) = deband {
-            if *deband != DebandDither::Disabled {
-                view_key |= MeshPipelineKey::DEBAND_DITHER;
-            }
         }
 
         if depth {

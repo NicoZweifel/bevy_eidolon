@@ -6,9 +6,7 @@ use bevy_core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
 use bevy_core_pipeline::deferred::{DEFERRED_LIGHTING_PASS_ID_FORMAT, DEFERRED_PREPASS_FORMAT};
 use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
-use bevy_pbr::{
-    MeshLayouts, MeshPipeline, MeshPipelineKey, MeshPipelineViewLayoutKey, PrepassPipeline,
-};
+use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
     BindGroupLayoutDescriptor, BlendState, ColorTargetState, ColorWrites, CompareFunction,
     DepthBiasState, DepthStencilState, FragmentState, MultisampleState, PrimitiveState,
