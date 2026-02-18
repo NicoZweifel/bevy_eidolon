@@ -38,7 +38,6 @@ offset-allocator = "0.2.0"
 [dev-dependencies]
 bevy-inspector-egui = "0.36"
 bevy = { version = "0.18.0", features = [
-    "dynamic_linking",
     "file_watcher",
     "embedded_watcher",
     "asset_processor",
