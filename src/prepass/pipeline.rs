@@ -9,10 +9,9 @@ use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
-    BindGroupLayoutDescriptor, CompareFunction,
-    DepthBiasState, DepthStencilState, FragmentState, MultisampleState, PrimitiveState,
-    RenderPipelineDescriptor, SpecializedMeshPipeline, SpecializedMeshPipelineError, StencilState,
-    VertexAttribute, VertexState, VertexStepMode,
+    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
+    MultisampleState, PrimitiveState, RenderPipelineDescriptor, SpecializedMeshPipeline,
+    SpecializedMeshPipelineError, StencilState, VertexAttribute, VertexState, VertexStepMode,
 };
 use bevy_shader::Shader;
 use bevy_utils::default;
