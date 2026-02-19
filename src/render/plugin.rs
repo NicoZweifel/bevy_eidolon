@@ -25,6 +25,7 @@ use crate::render::{
     prepared_material::PreparedInstancedMaterial, queue::*,
 };
 
+use crate::prepass::CullComputeCamera;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -101,6 +102,7 @@ where
         app.add_plugins((
             AllocatorPlugin::<M>::default(),
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
+            ExtractComponentPlugin::<CullComputeCamera>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
         ));
 

@@ -10,6 +10,8 @@ use bevy::{
     core_pipeline::tonemapping::Tonemapping, light::VolumetricLight, prelude::*,
     render::view::ColorGrading,
 };
+use bevy_core_pipeline::prepass::DeferredPrepass;
+use bevy_eidolon::prepass::CullComputeCamera;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::RenderPlugin;
@@ -80,6 +82,7 @@ fn spawn_directional_light(mut cmd: Commands) {
 
 pub fn setup(mut cmd: Commands) {
     cmd.spawn((
+        CullComputeCamera,
         Camera::default(),
         Hdr,
         Controller::default(),
@@ -91,6 +94,7 @@ pub fn setup(mut cmd: Commands) {
         Tonemapping::TonyMcMapface,
         Transform::from_xyz(-30., 20., 30.).looking_at(Vec3::ZERO, Vec3::Y),
         ShadowFilteringMethod::Temporal,
+        DeferredPrepass,
     ));
 
     cmd.spawn(PerfUiDefaultEntries::default());

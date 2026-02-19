@@ -1,5 +1,6 @@
 use crate::cull::pipeline::InstancedComputePipeline;
 use crate::prelude::*;
+use crate::prepass::CullComputeCamera;
 
 use bevy_camera::Camera;
 use bevy_camera::primitives::Frustum;
@@ -15,7 +16,7 @@ use bytemuck::bytes_of;
 
 pub fn prepare_global_cull_buffer<M: InstancedMaterial>(
     mut commands: Commands,
-    views: Query<(&ExtractedView, &Frustum, &Camera)>,
+    views: Query<(&ExtractedView, &Frustum, &Camera), With<CullComputeCamera>>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     global_buffer: Option<ResMut<GlobalCullBuffer>>,

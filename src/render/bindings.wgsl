@@ -4,6 +4,3 @@
 
 @group(2) @binding(0) var<storage, read> instance_uniforms: array<InstanceUniforms>;
 @group(3) @binding(0) var<uniform> material: MaterialUniforms;
-
-// @group(2) @binding(0) var<uniform> instance_uniforms: InstanceUniforms;
-// @group(3) @binding(0) var<uniform> material: MaterialUniforms;
