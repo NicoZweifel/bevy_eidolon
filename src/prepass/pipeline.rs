@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use bevy_asset::{AssetServer, Handle};
 use bevy_core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
 use bevy_core_pipeline::deferred::{DEFERRED_LIGHTING_PASS_ID_FORMAT, DEFERRED_PREPASS_FORMAT};
+use bevy_core_pipeline::prepass::prepass_target_descriptors;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
@@ -163,50 +164,12 @@ where
             self.material_layout.clone(),
         ];
 
-        let mut targets = vec![];
-
-        if key.mesh_key.contains(MeshPipelineKey::NORMAL_PREPASS) {
-            targets.push(Some(ColorTargetState {
-                format: TextureFormat::Rgb10a2Unorm,
-                blend: Some(BlendState::REPLACE),
-                write_mask: ColorWrites::ALL,
-            }));
-        } else {
-            targets.push(None);
-        }
-
-        if key
-            .mesh_key
-            .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
-        {
-            targets.push(Some(ColorTargetState {
-                format: TextureFormat::Rg16Float,
-                blend: Some(BlendState::REPLACE),
-                write_mask: ColorWrites::ALL,
-            }));
-        } else {
-            targets.push(None);
-        }
-
-        if key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS) {
-            targets.push(Some(ColorTargetState {
-                format: DEFERRED_PREPASS_FORMAT,
-                blend: None,
-                write_mask: ColorWrites::ALL,
-            }));
-        } else {
-            targets.push(None);
-        }
-
-        if key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS) {
-            targets.push(Some(ColorTargetState {
-                format: DEFERRED_LIGHTING_PASS_ID_FORMAT,
-                blend: None,
-                write_mask: ColorWrites::ALL,
-            }));
-        } else {
-            targets.push(None);
-        }
+        let mut targets = prepass_target_descriptors(
+            key.mesh_key.contains(MeshPipelineKey::NORMAL_PREPASS),
+            key.mesh_key
+                .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS),
+            key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS),
+        );
 
         if targets.iter().all(Option::is_none) {
             targets.clear();
