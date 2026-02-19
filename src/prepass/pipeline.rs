@@ -8,9 +8,10 @@ use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
-    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
-    MultisampleState, PrimitiveState, RenderPipelineDescriptor, SpecializedMeshPipeline,
-    SpecializedMeshPipelineError, StencilState, VertexAttribute, VertexState, VertexStepMode,
+    BindGroupLayoutDescriptor, CompareFunction,
+    DepthBiasState, DepthStencilState, FragmentState, MultisampleState, PrimitiveState,
+    RenderPipelineDescriptor, SpecializedMeshPipeline, SpecializedMeshPipelineError, StencilState,
+    VertexAttribute, VertexState, VertexStepMode,
 };
 use bevy_shader::Shader;
 use bevy_utils::default;
@@ -24,6 +25,7 @@ use crate::render::pipeline::{InstancedMaterialPipeline, InstancedMaterialPipeli
 pub struct InstancedPrepassPipeline<M: InstancedMaterial> {
     pub view_layout_motion_vectors: BindGroupLayoutDescriptor,
     pub view_layout_no_motion_vectors: BindGroupLayoutDescriptor,
+    pub view_layout_deferred: BindGroupLayoutDescriptor,
 
     pub empty_layout: BindGroupLayoutDescriptor,
     pub mesh_layouts: MeshLayouts,
@@ -47,6 +49,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
         let bevy_prepass = world.resource::<PrepassPipeline>();
         let view_layout_motion_vectors = bevy_prepass.view_layout_motion_vectors.clone();
         let view_layout_no_motion_vectors = bevy_prepass.view_layout_no_motion_vectors.clone();
+        let view_layout_deferred = bevy_prepass.view_layout_no_motion_vectors.clone();
         let empty_layout = bevy_prepass.empty_layout.clone();
 
         let mesh_pipeline = world.resource::<MeshPipeline>();
@@ -61,6 +64,7 @@ impl<M: InstancedMaterial> FromWorld for InstancedPrepassPipeline<M> {
         InstancedPrepassPipeline {
             view_layout_motion_vectors,
             view_layout_no_motion_vectors,
+            view_layout_deferred,
             mesh_layouts,
             empty_layout,
             common_layout,
@@ -92,18 +96,53 @@ where
             shader_defs.push("VERTEX_POSITIONS".into());
             vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_POSITION.at_shader_location(0));
         }
+
+        let deferred = key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS);
+
         if key.mesh_key.contains(MeshPipelineKey::NORMAL_PREPASS) {
             shader_defs.push("NORMAL_PREPASS".into());
+        }
+
+        if key
+            .mesh_key
+            .intersects(MeshPipelineKey::NORMAL_PREPASS | MeshPipelineKey::DEFERRED_PREPASS)
+        {
+            shader_defs.push("NORMAL_PREPASS_OR_DEFERRED_PREPASS".into());
+
             if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_NORMAL) {
                 shader_defs.push("VERTEX_NORMALS".into());
                 vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_NORMAL.at_shader_location(1));
             }
+            if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_TANGENT) {
+                shader_defs.push("VERTEX_TANGENTS".into());
+                vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_TANGENT.at_shader_location(2));
+            }
         }
+
         if key
             .mesh_key
             .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
         {
             shader_defs.push("MOTION_VECTOR_PREPASS".into());
+        }
+
+        if key
+            .mesh_key
+            .intersects(MeshPipelineKey::MOTION_VECTOR_PREPASS | MeshPipelineKey::DEFERRED_PREPASS)
+        {
+            shader_defs.push("MOTION_VECTOR_PREPASS_OR_DEFERRED_PREPASS".into());
+        }
+
+        if deferred {
+            shader_defs.push("DEFERRED_PREPASS".into());
+        }
+
+        if key.mesh_key.intersects(
+            MeshPipelineKey::NORMAL_PREPASS
+                | MeshPipelineKey::MOTION_VECTOR_PREPASS
+                | MeshPipelineKey::DEFERRED_PREPASS,
+        ) {
+            shader_defs.push("PREPASS_FRAGMENT".into());
         }
 
         let vertex_buffer_layout = layout.0.get_layout(&vertex_attributes)?;
@@ -128,7 +167,7 @@ where
             key.mesh_key.contains(MeshPipelineKey::NORMAL_PREPASS),
             key.mesh_key
                 .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS),
-            false,
+            key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS),
         );
 
         if targets.iter().all(Option::is_none) {

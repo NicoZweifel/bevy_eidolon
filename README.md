@@ -40,7 +40,14 @@ Dual-licensed:
 - MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
 
+## Compatibility
+| bevy        | bevy_feronia |
+|-------------|--------------|
+| 0.18        | 0.3+         |
+| 0.17        | 0.1          |
+
 ## Notes
 
 - Uses a custom pipeline for the `VisibilityRange` because of conflicting indices with the standard pipeline. Might also be replaced by something else in the future.
 - This is work in progress, I am open to discussions about the API (cover some shapes, simple cases), for now it's just a proof of concept.
+
