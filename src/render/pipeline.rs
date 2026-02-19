@@ -3,7 +3,7 @@ use crate::prelude::*;
 use bevy_asset::*;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout};
-use bevy_pbr::{MeshPipeline, MeshPipelineKey};
+use bevy_pbr::{MeshPipeline, MeshPipelineKey, MeshPipelineViewLayoutKey};
 use bevy_render::render_resource::binding_types::storage_buffer_read_only;
 use bevy_render::{render_resource::*, renderer::RenderDevice};
 use bevy_shader::Shader;
@@ -128,10 +128,26 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
 
+        let mut view_key = MeshPipelineViewLayoutKey::from(key.mesh_key);
+
+        if key.mesh_key.contains(MeshPipelineKey::DEFERRED_PREPASS) {
+            view_key |= MeshPipelineViewLayoutKey::DEFERRED_PREPASS;
+        }
+        if key
+            .mesh_key
+            .contains(MeshPipelineKey::MOTION_VECTOR_PREPASS)
+        {
+            view_key |= MeshPipelineViewLayoutKey::MOTION_VECTOR_PREPASS;
+        }
+
+        let view_layout_struct = self.mesh_pipeline.get_view_layout(view_key);
+
+        descriptor.layout[0] = view_layout_struct.main_layout.clone();
+
         while descriptor.layout.len() < 2 {
-            #[cfg(feature = "trace")]
-            tracing::warn!("MeshPipeline produced < 2 layouts. Padding with Common.");
-            descriptor.layout.push(self.common_layout.clone());
+            descriptor
+                .layout
+                .push(self.mesh_pipeline.mesh_layouts.model_only.clone());
         }
 
         if descriptor.layout.len() > 2 {

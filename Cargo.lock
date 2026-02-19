@@ -824,6 +824,7 @@ dependencies = [
  "bevy_core_pipeline",
  "bevy_derive",
  "bevy_ecs",
+ "bevy_light",
  "bevy_math",
  "bevy_mesh",
  "bevy_pbr",

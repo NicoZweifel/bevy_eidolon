@@ -25,9 +25,9 @@ use bevy_utils::default;
 
 use example::*;
 
+use bevy_camera::visibility::NoAutoAabb;
 use rand::{Rng, rng};
 use std::sync::Arc;
-use bevy_camera::visibility::NoAutoAabb;
 
 fn main() -> AppExit {
     App::new()

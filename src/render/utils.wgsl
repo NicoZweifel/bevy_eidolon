@@ -12,10 +12,10 @@ fn calc_instance_world_matrix(
     let s = sin(i_rotation) * scale;
     
     let instance_local = mat4x4<f32>(
-        vec4<f32>(c, 0.0, s, 0.0),       
-        vec4<f32>(0.0, scale, 0.0, 0.0), 
-        vec4<f32>(-s, 0.0, c, 0.0),      
-        vec4<f32>(translation, 1.0)      
+        vec4<f32>(c, 0.0, -s, 0.0),
+        vec4<f32>(0.0, scale, 0.0, 0.0),
+        vec4<f32>(s, 0.0, c, 0.0),
+        vec4<f32>(translation, 1.0)
     );
 
     return parent_transform * instance_local;
