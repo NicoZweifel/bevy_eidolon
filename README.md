@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
 [![Downloads](https://img.shields.io/crates/d/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
 [![Docs](https://docs.rs/bevy_eidolon/badge.svg)](https://docs.rs/bevy_eidolon/)
-[![CI](https://github.com/nicozweifel/bevy_eidolon/workflows/CI/badge.svg)](https://github.com/NicoZweifel/bevy_eidolon/actions)
+[![CI](https://github.com/nicozweifel/bevy_eidolon/workflows/CI/badge.svg?branch=dev)](https://github.com/NicoZweifel/bevy_eidolon/actions)
 
 > *"Reality is illusion"*
 
