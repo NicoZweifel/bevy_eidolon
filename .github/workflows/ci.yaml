@@ -1,13 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main, dev]
-    paths:
-      - '**.rs'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '.github/workflows/ci.yaml'
   pull_request:
     branches: [main, dev]
     paths:
@@ -15,6 +8,14 @@ on:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
       - '.github/workflows/ci.yaml'
+  push:
+    branches: [main, dev]
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/ci.yaml'
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -26,69 +27,58 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
-  # cargo test
+  # Run cargo test
   test:
-    name: Test Suite
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
+      - &checkout
+        name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - &cache
+        name: Rust Cache
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - name: Install Dependencies
+          shared-key: "ci"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+      - &install-deps
+        name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
       - name: Run cargo test
         run: cargo test
 
-  # cargo clippy -- -D warnings
+  # Run cargo clippy -- -D warnings
   clippy_check:
     name: Clippy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
+      - *checkout
+      - *cache
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
+          toolchain: stable
           components: clippy
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - *install-deps
       - name: Run clippy
         run: cargo clippy -- -D warnings
 
-  # cargo fmt --all -- --check
+  # Run cargo fmt --all -- --check
   format:
     name: Format
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - *checkout
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
         with:
+          toolchain: stable
           components: rustfmt
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
