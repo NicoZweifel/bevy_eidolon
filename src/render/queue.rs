@@ -13,6 +13,7 @@ use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{
     ExtractedAtmosphere, MeshPipelineKey, RenderMeshInstances, ScreenSpaceAmbientOcclusion,
 };
+use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
     mesh::RenderMesh,
@@ -117,7 +118,7 @@ pub(crate) fn queue_instanced_material<M>(
                 let material_instance = render_material_instances.instances.get(main_entity)?;
                 let prepared_material = render_materials.get(material_instance.asset_id.typed())?;
                 let mesh_instance = render_mesh_instances.render_mesh_queue_data(*main_entity)?;
-                let mesh = meshes.get(mesh_instance.mesh_asset_id)?;
+                let mesh = meshes.get(mesh_instance.mesh_asset_id())?;
 
                 view_layers
                     .unwrap_or_default()
@@ -127,7 +128,10 @@ pub(crate) fn queue_instanced_material<M>(
         {
             let key = InstancedMaterialPipelineKey {
                 mesh_key: view_key
-                    | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology()),
+                    | MeshPipelineKey::from_primitive_topology_and_strip_index(
+                        mesh.primitive_topology(),
+                        None,
+                    ),
                 bind_group_data: prepared_material.key.clone(),
             };
 
@@ -135,7 +139,14 @@ pub(crate) fn queue_instanced_material<M>(
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
 
-            let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
+            let Some(MeshSlabs {
+                vertex_slab_id,
+                index_slab_id,
+                ..
+            }) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id())
+            else {
+                continue;
+            };
 
             let material_instance = render_material_instances
                 .instances
@@ -149,7 +160,7 @@ pub(crate) fn queue_instanced_material<M>(
             #[cfg(feature = "trace")]
             trace!(
                 "queue_instanced_material: vertex_slab: {:?}, index_slab: {:?}",
-                vertex_slab, index_slab
+                vertex_slab_id, index_slab_id
             );
 
             opaque_mask_phases.add(
@@ -157,17 +168,19 @@ pub(crate) fn queue_instanced_material<M>(
                     pipeline,
                     draw_function: prepared_material.draw_opaque,
                     material_bind_group_index: Some(material_index),
-                    vertex_slab: vertex_slab.unwrap_or_default(),
-                    index_slab,
+                    slabs: MeshSlabs {
+                        vertex_slab_id,
+                        index_slab_id,
+                        ..Default::default()
+                    },
                     lightmap_slab: None,
                 },
                 Opaque3dBinKey {
-                    asset_id: mesh_instance.mesh_asset_id.into(),
+                    asset_id: mesh_instance.mesh_asset_id().into(),
                 },
                 (*entity, *main_entity),
                 InputUniformIndex(0),
                 BinnedRenderPhaseType::UnbatchableMesh,
-                ticks.this_run(),
             );
         }
     }

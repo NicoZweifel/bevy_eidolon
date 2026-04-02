@@ -6,6 +6,7 @@ use bevy_reflect::Reflect;
 use bevy_render::{
     extract_component::ExtractComponent,
     render_resource::{BindGroup, Buffer},
+    sync_component::SyncComponent,
 };
 use bevy_utils::default;
 
@@ -81,6 +82,10 @@ impl fmt::Debug for InstanceMaterialData {
             .field("visibility_range", &self.visibility_range)
             .finish()
     }
+}
+
+impl SyncComponent for InstanceMaterialData {
+    type Target = (Self, GlobalTransform, Aabb);
 }
 
 impl ExtractComponent for InstanceMaterialData {
@@ -161,6 +166,10 @@ pub struct InstancedComputeBindGroup(pub BindGroup);
 
 #[derive(Component, Clone, Deref, DerefMut)]
 pub struct MaterialBindGroupData<M: InstancedMaterial>(pub M::Data);
+
+impl<M: InstancedMaterial> SyncComponent for MaterialBindGroupData<M> {
+    type Target = Self;
+}
 
 impl<M> ExtractComponent for MaterialBindGroupData<M>
 where

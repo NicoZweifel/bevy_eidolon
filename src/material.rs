@@ -6,11 +6,12 @@ use bevy_math::Vec4;
 use bevy_mesh::MeshVertexBufferLayoutRef;
 use bevy_reflect::TypePath;
 use bevy_render::{
-    render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
-    {
-        extract_component::ExtractComponent,
-        render_resource::{PolygonMode, ShaderType},
+    extract_component::ExtractComponent,
+    render_resource::{
+        AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderType,
+        SpecializedMeshPipelineError,
     },
+    sync_component::SyncComponent,
 };
 use bevy_shader::ShaderRef;
 use bitflags::bitflags;
@@ -18,6 +19,8 @@ use bytemuck::{Pod, Zeroable};
 
 use std::fmt::Debug;
 use std::hash::Hash;
+
+use crate::prelude::InstanceMaterialData;
 
 pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync + 'static {
     /// The vertex shader.
@@ -169,6 +172,10 @@ impl InstancedMaterialUniforms {
 pub struct InstancedMeshMaterial<M>(pub Handle<M>)
 where
     M: InstancedMaterial;
+
+impl<M: InstancedMaterial> SyncComponent for InstancedMeshMaterial<M> {
+    type Target = Self;
+}
 
 impl<M: InstancedMaterial> ExtractComponent for InstancedMeshMaterial<M> {
     type QueryData = &'static InstancedMeshMaterial<M>;

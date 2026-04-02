@@ -10,16 +10,12 @@ use bevy::{
     core_pipeline::tonemapping::Tonemapping, light::VolumetricLight, prelude::*,
     render::view::ColorGrading,
 };
+use bevy_camera::Hdr;
 use bevy_core_pipeline::prepass::DeferredPrepass;
 use bevy_eidolon::prepass::CullComputeCamera;
-use bevy_inspector_egui::bevy_egui::EguiPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::RenderPlugin;
 use bevy_render::settings::{RenderCreation, WgpuLimits, WgpuSettings};
-use bevy_render::view::Hdr;
-use bevy_show_prepass::{ShowPrepass, ShowPrepassPlugin};
 use camera_controller::*;
-use iyes_perf_ui::prelude::*;
 
 #[derive(Resource, Default, PartialEq, Reflect)]
 #[reflect(Resource)]
@@ -37,14 +33,14 @@ impl Plugin for ExamplePlugin {
                 DefaultPlugins
                     .set(AssetPlugin { ..default() })
                     .set(RenderPlugin {
-                        render_creation: RenderCreation::Automatic(WgpuSettings {
+                        render_creation: RenderCreation::Automatic(Box::new(WgpuSettings {
                             limits: WgpuLimits {
                                 max_storage_buffer_binding_size: 1024 << 20,
                                 max_buffer_size: 1024 << 20,
                                 ..default()
                             },
                             ..default()
-                        }),
+                        })),
                         ..default()
                     }),
             )
@@ -52,17 +48,9 @@ impl Plugin for ExamplePlugin {
                 FrameTimeDiagnosticsPlugin::default(),
                 EntityCountDiagnosticsPlugin::default(),
                 SystemInformationDiagnosticsPlugin,
-                PerfUiPlugin,
-                ShowPrepassPlugin,
-            ))
-            .add_plugins((
-                EguiPlugin::default(),
-                WorldInspectorPlugin::default()
-                    .run_if(|res: Res<ExamplePluginOptions>| res.show_inspector),
             ))
             .add_plugins(CameraControllerPlugin)
-            .add_systems(Startup, (setup, spawn_directional_light))
-            .add_systems(Update, choose_show_prepass_mode);
+            .add_systems(Startup, (setup, spawn_directional_light));
     }
 }
 
@@ -70,13 +58,13 @@ fn spawn_directional_light(mut cmd: Commands) {
     cmd.spawn((
         DirectionalLight {
             illuminance: FULL_DAYLIGHT,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
+            contact_shadows_enabled: true,
             color: Color::srgb(1.0, 0.98, 0.95),
             ..default()
         },
         VolumetricLight,
         Transform::from_xyz(2., 2., 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ShadowFilteringMethod::Temporal,
     ));
 }
 
@@ -96,22 +84,4 @@ pub fn setup(mut cmd: Commands) {
         ShadowFilteringMethod::Temporal,
         DeferredPrepass,
     ));
-
-    cmd.spawn(PerfUiDefaultEntries::default());
-}
-
-fn choose_show_prepass_mode(
-    mut commands: Commands,
-    camera: Single<Entity, With<Camera3d>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-) {
-    if keyboard.just_pressed(KeyCode::Digit1) {
-        commands.entity(*camera).remove::<ShowPrepass>();
-    } else if keyboard.just_pressed(KeyCode::Digit2) {
-        commands.entity(*camera).insert(ShowPrepass::Depth);
-    } else if keyboard.just_pressed(KeyCode::Digit3) {
-        commands.entity(*camera).insert(ShowPrepass::Normals);
-    } else if keyboard.just_pressed(KeyCode::Digit4) {
-        commands.entity(*camera).insert(ShowPrepass::MotionVectors);
-    }
 }

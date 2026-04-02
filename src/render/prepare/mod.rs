@@ -149,7 +149,7 @@ fn collect_inputs<M: InstancedMaterial>(
 
                 let batch_key = BatchKey {
                     material: material.id(),
-                    mesh: mesh_instance.mesh_asset_id,
+                    mesh: mesh_instance.mesh_asset_id(),
                     gpu_cull: gpu_cull.is_some(),
                 };
 
@@ -201,7 +201,7 @@ fn collect_inputs<M: InstancedMaterial>(
                 let input = BatchInput {
                     entity,
                     main_entity: *main_entity,
-                    mesh_id: mesh_instance.mesh_asset_id,
+                    mesh_id: mesh_instance.mesh_asset_id(),
                     instances: instance_data.instances.clone(),
                     gpu_cull: gpu_cull.is_some(),
                     batch: InstanceUniforms {

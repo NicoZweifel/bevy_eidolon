@@ -12,6 +12,7 @@ use bevy_core_pipeline::prepass::{
 };
 use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
+use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
     mesh::RenderMesh,
@@ -84,13 +85,23 @@ pub fn queue_instanced_material_prepass<M>(
             else {
                 continue;
             };
-            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id) else {
+            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id()) else {
                 continue;
             };
 
-            let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
-            let primitive_topology_key =
-                MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+            let Some(MeshSlabs {
+                vertex_slab_id,
+                index_slab_id,
+                ..
+            }) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id())
+            else {
+                continue;
+            };
+
+            let primitive_topology_key = MeshPipelineKey::from_primitive_topology_and_strip_index(
+                mesh.primitive_topology(),
+                None,
+            );
 
             #[cfg(feature = "trace")]
             trace!(
@@ -129,16 +140,18 @@ pub fn queue_instanced_material_prepass<M>(
                         pipeline,
                         draw_function: prepared_material.draw_deferred,
                         material_bind_group_index: None,
-                        vertex_slab: vertex_slab.unwrap_or_default(),
-                        index_slab,
+                        slabs: MeshSlabs {
+                            vertex_slab_id,
+                            index_slab_id,
+                            ..Default::default()
+                        },
                     },
                     OpaqueNoLightmap3dBinKey {
-                        asset_id: mesh_instance.mesh_asset_id.into(),
+                        asset_id: mesh_instance.mesh_asset_id().into(),
                     },
                     (*entity, *main_entity),
                     InputUniformIndex(0),
                     BinnedRenderPhaseType::UnbatchableMesh,
-                    ticks.this_run(),
                 );
             }
 
@@ -180,16 +193,18 @@ pub fn queue_instanced_material_prepass<M>(
                         pipeline,
                         draw_function: prepared_material.draw_prepass,
                         material_bind_group_index: None,
-                        vertex_slab: vertex_slab.unwrap_or_default(),
-                        index_slab,
+                        slabs: MeshSlabs {
+                            vertex_slab_id,
+                            index_slab_id,
+                            ..Default::default()
+                        },
                     },
                     OpaqueNoLightmap3dBinKey {
-                        asset_id: mesh_instance.mesh_asset_id.into(),
+                        asset_id: mesh_instance.mesh_asset_id().into(),
                     },
                     (*entity, *main_entity),
                     InputUniformIndex(0),
                     BinnedRenderPhaseType::UnbatchableMesh,
-                    ticks.this_run(),
                 );
             }
         }

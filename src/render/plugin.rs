@@ -6,7 +6,7 @@ use bevy_ecs::{change_detection::Tick, prelude::*};
 use bevy_mesh::Mesh3d;
 use bevy_platform::collections::hash_map::Entry;
 use bevy_render::{
-    Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
+    Extract, ExtractSchedule, Render, RenderApp, RenderStartup, RenderSystems,
     extract_component::ExtractComponentPlugin,
     render_asset::RenderAssetPlugin,
     render_phase::AddRenderCommand,
@@ -16,13 +16,15 @@ use bevy_render::{
 use bevy_shader::load_shader_library;
 use bevy_transform::prelude::GlobalTransform;
 
-use crate::allocator::prelude::AllocatorPlugin;
 use crate::cull::prepare::prepare_global_cull_buffer;
 use crate::prelude::*;
 use crate::prepass::prelude::InstancedPrepassPlugin;
 use crate::render::{
     draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
     prepared_material::PreparedInstancedMaterial, queue::*,
+};
+use crate::{
+    allocator::prelude::AllocatorPlugin, render::pipeline::init_instanced_material_pipeline,
 };
 
 use crate::prepass::CullComputeCamera;
@@ -113,6 +115,7 @@ where
         render_app
             .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>()
+            .add_systems(RenderStartup, init_instanced_material_pipeline::<M>)
             .add_systems(
                 ExtractSchedule,
                 (
@@ -132,11 +135,6 @@ where
                     queue_instanced_material::<M>.in_set(RenderSystems::QueueMeshes),
                 ),
             );
-    }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedMaterialPipeline<M>>();
     }
 }
 
