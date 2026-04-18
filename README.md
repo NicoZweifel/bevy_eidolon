@@ -41,7 +41,7 @@ Dual-licensed:
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
 
 ## Compatibility
-| bevy        | bevy_feronia |
+| bevy        | bevy_eidolon |
 |-------------|--------------|
 | 0.18        | 0.3+         |
 | 0.17        | 0.1          |
