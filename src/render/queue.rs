@@ -11,7 +11,7 @@ use bevy_core_pipeline::{
 };
 use bevy_ecs::{prelude::*, system::SystemChangeTick};
 use bevy_pbr::{
-    ExtractedAtmosphere, MeshPipelineKey, RenderMeshInstances, ScreenSpaceAmbientOcclusion,
+    MeshPipelineKey, RenderMeshInstances, ViewKeyCache,
 };
 use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
@@ -44,62 +44,22 @@ pub(crate) fn queue_instanced_material<M>(
     _gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
     mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
     ticks: SystemChangeTick,
-    views: Query<(
-        &ExtractedView,
-        &Msaa,
-        (
-            (
-                Has<DepthPrepass>,
-                Has<NormalPrepass>,
-                Has<MotionVectorPrepass>,
-                Has<DeferredPrepass>,
-            ),
-            Has<EnvironmentMapLight>,
-            Has<ScreenSpaceAmbientOcclusion>,
-            Option<&RenderLayers>,
-            Has<ExtractedAtmosphere>,
-        ),
-    )>,
+    views: Query<(&ExtractedView, Option<&RenderLayers>)>,
+    view_key_cache: Res<ViewKeyCache>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
 {
-    for (view, msaa, ((depth, normal, motion, deferred), env_map, ssao, view_layers, atmosphere)) in
-        &views
-    {
+    for (view, view_layers) in &views {
         let Some(opaque_mask_phases) = opaque_render_phases.get_mut(&view.retained_view_entity)
         else {
             continue;
         };
 
-        let mut view_key = MeshPipelineKey::from_msaa_samples(msaa.samples())
-            | MeshPipelineKey::from_hdr(view.hdr);
-
-        if env_map {
-            view_key |= MeshPipelineKey::ENVIRONMENT_MAP;
-        }
-
-        if atmosphere {
-            view_key |= MeshPipelineKey::ATMOSPHERE;
-        }
-
-        if ssao {
-            view_key |= MeshPipelineKey::SCREEN_SPACE_AMBIENT_OCCLUSION;
-        }
-
-        if depth {
-            view_key |= MeshPipelineKey::DEPTH_PREPASS;
-        }
-        if normal {
-            view_key |= MeshPipelineKey::NORMAL_PREPASS;
-        }
-        if motion {
-            view_key |= MeshPipelineKey::MOTION_VECTOR_PREPASS;
-        }
-        if deferred {
-            view_key |= MeshPipelineKey::DEFERRED_PREPASS;
-        }
+        let Some(&view_key) = view_key_cache.get(&view.retained_view_entity) else {
+            continue;
+        };
 
         #[cfg(feature = "trace")]
         if !batch_ranges.entities.is_empty() {

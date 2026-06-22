@@ -2,6 +2,8 @@
 mod camera_controller;
 
 use bevy::anti_alias::taa::TemporalAntiAliasing;
+use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
+use bevy::dev_tools::render_debug::{RenderDebugMode, RenderDebugOverlay};
 use bevy::diagnostic::*;
 use bevy::light::light_consts::lux::FULL_DAYLIGHT;
 use bevy::light::{DirectionalLightShadowMap, ShadowFilteringMethod};
@@ -13,6 +15,8 @@ use bevy::{
 use bevy_camera::Hdr;
 use bevy_core_pipeline::prepass::DeferredPrepass;
 use bevy_eidolon::prepass::CullComputeCamera;
+use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::RenderPlugin;
 use bevy_render::settings::{RenderCreation, WgpuLimits, WgpuSettings};
 use camera_controller::*;
@@ -48,9 +52,16 @@ impl Plugin for ExamplePlugin {
                 FrameTimeDiagnosticsPlugin::default(),
                 EntityCountDiagnosticsPlugin::default(),
                 SystemInformationDiagnosticsPlugin,
+                FpsOverlayPlugin::default(),
+            ))
+            .add_plugins((
+                EguiPlugin::default(),
+                WorldInspectorPlugin::default()
+                    .run_if(|res: Res<ExamplePluginOptions>| res.show_inspector),
             ))
             .add_plugins(CameraControllerPlugin)
-            .add_systems(Startup, (setup, spawn_directional_light));
+            .add_systems(Startup, (setup, spawn_directional_light))
+            .add_systems(Update, choose_show_prepass_mode);
     }
 }
 
@@ -84,4 +95,29 @@ pub fn setup(mut cmd: Commands) {
         ShadowFilteringMethod::Temporal,
         DeferredPrepass,
     ));
+}
+
+fn choose_show_prepass_mode(
+    mut commands: Commands,
+    camera: Single<Entity, With<Camera3d>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        commands.entity(*camera).remove::<RenderDebugOverlay>();
+    } else if keyboard.just_pressed(KeyCode::Digit2) {
+        commands.entity(*camera).insert(RenderDebugOverlay {
+            mode: RenderDebugMode::Depth,
+            ..default()
+        });
+    } else if keyboard.just_pressed(KeyCode::Digit3) {
+        commands.entity(*camera).insert(RenderDebugOverlay {
+            mode: RenderDebugMode::Normal,
+            ..default()
+        });
+    } else if keyboard.just_pressed(KeyCode::Digit4) {
+        commands.entity(*camera).insert(RenderDebugOverlay {
+            mode: RenderDebugMode::MotionVectors,
+            ..default()
+        });
+    }
 }
