@@ -10,7 +10,7 @@ use bevy_core_pipeline::prepass::{
     DeferredPrepass, DepthPrepass, MotionVectorPrepass, NormalPrepass, Opaque3dPrepass,
     OpaqueNoLightmap3dBatchSetKey, OpaqueNoLightmap3dBinKey,
 };
-use bevy_ecs::{prelude::*, system::SystemChangeTick};
+use bevy_ecs::prelude::*;
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
 use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
@@ -51,7 +51,6 @@ pub fn queue_instanced_material_prepass<M>(
         Option<&DeferredPrepass>,
     )>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
-    ticks: SystemChangeTick,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,

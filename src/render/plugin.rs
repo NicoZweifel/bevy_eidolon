@@ -4,7 +4,7 @@ use bevy_camera::prelude::ViewVisibility;
 use bevy_core_pipeline::core_3d::Opaque3d;
 use bevy_ecs::{change_detection::Tick, prelude::*};
 use bevy_mesh::Mesh3d;
-use bevy_pbr::{MeshPipeline, MeshPipelineSystems};
+use bevy_pbr::MeshPipelineSystems;
 use bevy_platform::collections::hash_map::Entry;
 use bevy_render::{
     Extract, ExtractSchedule, Render, RenderApp, RenderStartup, RenderSystems,

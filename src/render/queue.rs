@@ -5,14 +5,9 @@ use crate::render::{
     prepared_material::PreparedInstancedMaterial,
 };
 
-use bevy_core_pipeline::{
-    core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey},
-    prepass::{DeferredPrepass, DepthPrepass, MotionVectorPrepass, NormalPrepass},
-};
-use bevy_ecs::{prelude::*, system::SystemChangeTick};
-use bevy_pbr::{
-    MeshPipelineKey, RenderMeshInstances, ViewKeyCache,
-};
+use bevy_core_pipeline::core_3d::{Opaque3d, Opaque3dBatchSetKey, Opaque3dBinKey};
+use bevy_ecs::prelude::*;
+use bevy_pbr::{MeshPipelineKey, RenderMeshInstances, ViewKeyCache};
 use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
@@ -22,11 +17,9 @@ use bevy_render::{
     render_phase::{BinnedRenderPhaseType, InputUniformIndex, ViewBinnedRenderPhases},
     render_resource::*,
     view::ExtractedView,
-    view::Msaa,
 };
 
 use bevy_camera::visibility::RenderLayers;
-use bevy_light::EnvironmentMapLight;
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "trace")]
 use tracing::*;
@@ -43,7 +36,6 @@ pub(crate) fn queue_instanced_material<M>(
     mesh_allocator: Res<MeshAllocator>,
     _gpu_preprocessing_support: Res<GpuPreprocessingSupport>,
     mut opaque_render_phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
-    ticks: SystemChangeTick,
     views: Query<(&ExtractedView, Option<&RenderLayers>)>,
     view_key_cache: Res<ViewKeyCache>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
@@ -108,7 +100,7 @@ pub(crate) fn queue_instanced_material<M>(
                 continue;
             };
 
-            if index_slab.is_none() {
+            if index_slab_id.is_none() {
                 continue;
             }
 

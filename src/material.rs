@@ -20,8 +20,6 @@ use bytemuck::{Pod, Zeroable};
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::prelude::InstanceMaterialData;
-
 pub trait InstancedMaterial: Asset + AsBindGroup + Clone + Sized + Send + Sync + 'static {
     /// The vertex shader.
     fn vertex_shader() -> ShaderRef {

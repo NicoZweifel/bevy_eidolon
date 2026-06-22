@@ -265,8 +265,10 @@ mod tests {
     #[test]
     fn test_alloc_should_overflow_and_alloc_new_page() {
         // Arrange
-        let mut allocator = PagedAllocator::default();
-        allocator.page_size = 100;
+        let mut allocator = PagedAllocator {
+            page_size: 100,
+            ..Default::default()
+        };
 
         let e1 = entity(1);
         let e2 = entity(2);
