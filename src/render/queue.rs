@@ -108,6 +108,10 @@ pub(crate) fn queue_instanced_material<M>(
                 continue;
             };
 
+            if index_slab.is_none() {
+                continue;
+            }
+
             let material_instance = render_material_instances
                 .instances
                 .get(main_entity)
