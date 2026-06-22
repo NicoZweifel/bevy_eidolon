@@ -137,6 +137,10 @@ pub(crate) fn queue_instanced_material<M>(
 
             let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
 
+            if index_slab.is_none() {
+                continue;
+            }
+
             let material_instance = render_material_instances
                 .instances
                 .get(main_entity)
