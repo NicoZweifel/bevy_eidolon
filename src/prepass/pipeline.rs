@@ -8,7 +8,7 @@ use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
-    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
+    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, Face, FragmentState,
     MultisampleState, PrimitiveState, RenderPipelineDescriptor, SpecializedMeshPipeline,
     SpecializedMeshPipelineError, StencilState, VertexAttribute, VertexState, VertexStepMode,
 };
@@ -199,7 +199,7 @@ where
             primitive: PrimitiveState {
                 topology: key.mesh_key.primitive_topology(),
                 strip_index_format: key.mesh_key.strip_index_format(),
-                cull_mode: None,
+                cull_mode: Some(Face::Back),
                 ..Default::default()
             },
             depth_stencil: Some(DepthStencilState {
