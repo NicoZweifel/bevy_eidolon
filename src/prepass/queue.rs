@@ -51,6 +51,7 @@ pub fn queue_instanced_material_prepass<M>(
         Option<&DeferredPrepass>,
     )>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
+    removed_entities: Res<crate::render::plugin::RemovedRenderInstancedMaterialEntities>,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
@@ -63,6 +64,15 @@ pub fn queue_instanced_material_prepass<M>(
         let mut opaque_phase = opaque_render_phases.get_mut(&view.retained_view_entity);
         let mut deferred_phase = deferred_prepass
             .and_then(|_| opaque_deferred_phases.get_mut(&view.retained_view_entity));
+
+        for &entity in &removed_entities.0 {
+            if let Some(phase) = opaque_phase.as_mut() {
+                phase.remove(entity);
+            }
+            if let Some(phase) = deferred_phase.as_mut() {
+                phase.remove(entity);
+            }
+        }
 
         if opaque_phase.is_none() && deferred_phase.is_none() {
             continue;
@@ -99,7 +109,7 @@ pub fn queue_instanced_material_prepass<M>(
 
             let primitive_topology_key = MeshPipelineKey::from_primitive_topology_and_strip_index(
                 mesh.primitive_topology(),
-                None,
+                mesh.index_format(),
             );
 
             #[cfg(feature = "trace")]

@@ -39,6 +39,7 @@ pub(crate) fn queue_instanced_material<M>(
     views: Query<(&ExtractedView, Option<&RenderLayers>)>,
     view_key_cache: Res<ViewKeyCache>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
+    removed_entities: Res<crate::render::plugin::RemovedRenderInstancedMaterialEntities>,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
@@ -48,6 +49,10 @@ pub(crate) fn queue_instanced_material<M>(
         else {
             continue;
         };
+
+        for &entity in &removed_entities.0 {
+            opaque_mask_phases.remove(entity);
+        }
 
         let Some(&view_key) = view_key_cache.get(&view.retained_view_entity) else {
             continue;
@@ -82,7 +87,7 @@ pub(crate) fn queue_instanced_material<M>(
                 mesh_key: view_key
                     | MeshPipelineKey::from_primitive_topology_and_strip_index(
                         mesh.primitive_topology(),
-                        None,
+                        mesh.index_format(),
                     ),
                 bind_group_data: prepared_material.key.clone(),
             };

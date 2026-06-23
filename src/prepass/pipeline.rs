@@ -198,6 +198,8 @@ where
             },
             primitive: PrimitiveState {
                 topology: key.mesh_key.primitive_topology(),
+                strip_index_format: key.mesh_key.strip_index_format(),
+                cull_mode: None,
                 ..Default::default()
             },
             depth_stencil: Some(DepthStencilState {

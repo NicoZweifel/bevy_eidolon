@@ -13,7 +13,9 @@ use bevy::{
     render::view::ColorGrading,
 };
 use bevy_camera::Hdr;
-use bevy_core_pipeline::prepass::DeferredPrepass;
+use bevy_core_pipeline::prepass::{
+    DeferredPrepass, DepthPrepass, MotionVectorPrepass, NormalPrepass,
+};
 use bevy_eidolon::prepass::CullComputeCamera;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -85,15 +87,19 @@ pub fn setup(mut cmd: Commands) {
         Camera::default(),
         Hdr,
         Controller::default(),
-        Msaa::Off,
-        TemporalAntiAliasing::default(),
+        Msaa::Sample4,
         Camera3d::default(),
         ColorGrading::default(),
         Bloom::NATURAL,
         Tonemapping::TonyMcMapface,
         Transform::from_xyz(-30., 20., 30.).looking_at(Vec3::ZERO, Vec3::Y),
         ShadowFilteringMethod::Temporal,
-        DeferredPrepass,
+        (
+            DeferredPrepass,
+            DepthPrepass,
+            NormalPrepass,
+            MotionVectorPrepass,
+        ),
     ));
 }
 
