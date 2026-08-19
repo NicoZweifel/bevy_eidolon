@@ -1,9 +1,7 @@
 #[path = "camera_controller.rs"]
 mod camera_controller;
 
-use bevy::anti_alias::taa::TemporalAntiAliasing;
 use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
-use bevy::dev_tools::render_debug::{RenderDebugMode, RenderDebugOverlay};
 use bevy::diagnostic::*;
 use bevy::light::light_consts::lux::FULL_DAYLIGHT;
 use bevy::light::{DirectionalLightShadowMap, ShadowFilteringMethod};
@@ -21,6 +19,7 @@ use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_render::RenderPlugin;
 use bevy_render::settings::{RenderCreation, WgpuLimits, WgpuSettings};
+use bevy_show_prepass::{ShowPrepass, ShowPrepassPlugin};
 use camera_controller::*;
 
 #[derive(Resource, Default, PartialEq, Reflect)]
@@ -55,6 +54,7 @@ impl Plugin for ExamplePlugin {
                 EntityCountDiagnosticsPlugin::default(),
                 SystemInformationDiagnosticsPlugin,
                 FpsOverlayPlugin::default(),
+                ShowPrepassPlugin,
             ))
             .add_plugins((
                 EguiPlugin::default(),
@@ -109,21 +109,12 @@ fn choose_show_prepass_mode(
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     if keyboard.just_pressed(KeyCode::Digit1) {
-        commands.entity(*camera).remove::<RenderDebugOverlay>();
+        commands.entity(*camera).remove::<ShowPrepass>();
     } else if keyboard.just_pressed(KeyCode::Digit2) {
-        commands.entity(*camera).insert(RenderDebugOverlay {
-            mode: RenderDebugMode::Depth,
-            ..default()
-        });
+        commands.entity(*camera).insert(ShowPrepass::Depth);
     } else if keyboard.just_pressed(KeyCode::Digit3) {
-        commands.entity(*camera).insert(RenderDebugOverlay {
-            mode: RenderDebugMode::Normal,
-            ..default()
-        });
+        commands.entity(*camera).insert(ShowPrepass::Normals);
     } else if keyboard.just_pressed(KeyCode::Digit4) {
-        commands.entity(*camera).insert(RenderDebugOverlay {
-            mode: RenderDebugMode::MotionVectors,
-            ..default()
-        });
+        commands.entity(*camera).insert(ShowPrepass::MotionVectors);
     }
 }

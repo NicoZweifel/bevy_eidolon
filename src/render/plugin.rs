@@ -64,9 +64,11 @@ impl Plugin for InstancedMaterialCorePlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    clear_removed_instanced_material_entities.in_set(InstancedMaterialExtractionSystems),
-                    late_sweep_instanced_material_instances.after(InstancedMaterialExtractionSystems)
-                )
+                    clear_removed_instanced_material_entities
+                        .in_set(InstancedMaterialExtractionSystems),
+                    late_sweep_instanced_material_instances
+                        .after(InstancedMaterialExtractionSystems),
+                ),
             );
     }
 }

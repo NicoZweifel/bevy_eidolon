@@ -205,7 +205,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -891,6 +891,7 @@ dependencies = [
  "bevy_reflect",
  "bevy_render",
  "bevy_shader",
+ "bevy_show_prepass",
  "bevy_transform",
  "bevy_utils",
  "bitflags 2.11.0",
@@ -1606,6 +1607,15 @@ dependencies = [
  "tracing",
  "wgpu-naga-bridge",
  "wgpu-types",
+]
+
+[[package]]
+name = "bevy_show_prepass"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f676ebd40863a7775269b96ea9beb9fe05e009e6e9c1941e748c0d4baf5ee46b"
+dependencies = [
+ "bevy",
 ]
 
 [[package]]
