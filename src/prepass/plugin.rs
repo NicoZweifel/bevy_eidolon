@@ -1,5 +1,6 @@
 use super::{draw::*, pipeline::*, queue::queue_instanced_material_prepass};
 use crate::material::InstancedMaterial;
+use crate::render::pipeline::init_instanced_material_pipeline;
 
 use bevy_app::prelude::*;
 use bevy_asset::embedded_asset;
@@ -38,7 +39,9 @@ where
             .init_resource::<SpecializedMeshPipelines<InstancedPrepassPipeline<M>>>()
             .add_systems(
                 RenderStartup,
-                init_instanced_prepass_pipeline::<M>.after(init_prepass_pipeline),
+                init_instanced_prepass_pipeline::<M>
+                    .after(init_prepass_pipeline)
+                    .after(init_instanced_material_pipeline::<M>),
             )
             .add_systems(
                 Render,
