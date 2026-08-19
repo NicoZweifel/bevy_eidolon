@@ -10,8 +10,9 @@ use bevy_core_pipeline::prepass::{
     DeferredPrepass, DepthPrepass, MotionVectorPrepass, NormalPrepass, Opaque3dPrepass,
     OpaqueNoLightmap3dBatchSetKey, OpaqueNoLightmap3dBinKey,
 };
-use bevy_ecs::{prelude::*, system::SystemChangeTick};
+use bevy_ecs::prelude::*;
 use bevy_pbr::{MeshPipelineKey, RenderMeshInstances};
+use bevy_render::mesh::allocator::MeshSlabs;
 use bevy_render::{
     batching::gpu_preprocessing::GpuPreprocessingSupport,
     mesh::RenderMesh,
@@ -50,7 +51,7 @@ pub fn queue_instanced_material_prepass<M>(
         Option<&DeferredPrepass>,
     )>,
     batch_ranges: Res<MaterialBatchRanges<M>>,
-    ticks: SystemChangeTick,
+    removed_entities: Res<crate::render::plugin::RemovedRenderInstancedMaterialEntities>,
 ) where
     M: InstancedMaterial,
     M::Data: PartialEq + Eq + Hash + Clone,
@@ -63,6 +64,15 @@ pub fn queue_instanced_material_prepass<M>(
         let mut opaque_phase = opaque_render_phases.get_mut(&view.retained_view_entity);
         let mut deferred_phase = deferred_prepass
             .and_then(|_| opaque_deferred_phases.get_mut(&view.retained_view_entity));
+
+        for &entity in &removed_entities.0 {
+            if let Some(phase) = opaque_phase.as_mut() {
+                phase.remove(entity);
+            }
+            if let Some(phase) = deferred_phase.as_mut() {
+                phase.remove(entity);
+            }
+        }
 
         if opaque_phase.is_none() && deferred_phase.is_none() {
             continue;
@@ -84,13 +94,23 @@ pub fn queue_instanced_material_prepass<M>(
             else {
                 continue;
             };
-            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id) else {
+            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id()) else {
                 continue;
             };
 
-            let (vertex_slab, index_slab) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id);
-            let primitive_topology_key =
-                MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+            let Some(MeshSlabs {
+                vertex_slab_id,
+                index_slab_id,
+                ..
+            }) = mesh_allocator.mesh_slabs(&mesh_instance.mesh_asset_id())
+            else {
+                continue;
+            };
+
+            let primitive_topology_key = MeshPipelineKey::from_primitive_topology_and_strip_index(
+                mesh.primitive_topology(),
+                mesh.index_format(),
+            );
 
             #[cfg(feature = "trace")]
             trace!(
@@ -129,16 +149,18 @@ pub fn queue_instanced_material_prepass<M>(
                         pipeline,
                         draw_function: prepared_material.draw_deferred,
                         material_bind_group_index: None,
-                        vertex_slab: vertex_slab.unwrap_or_default(),
-                        index_slab,
+                        slabs: MeshSlabs {
+                            vertex_slab_id,
+                            index_slab_id,
+                            ..Default::default()
+                        },
                     },
                     OpaqueNoLightmap3dBinKey {
-                        asset_id: mesh_instance.mesh_asset_id.into(),
+                        asset_id: mesh_instance.mesh_asset_id().into(),
                     },
                     (*entity, *main_entity),
                     InputUniformIndex(0),
                     BinnedRenderPhaseType::UnbatchableMesh,
-                    ticks.this_run(),
                 );
             }
 
@@ -180,16 +202,18 @@ pub fn queue_instanced_material_prepass<M>(
                         pipeline,
                         draw_function: prepared_material.draw_prepass,
                         material_bind_group_index: None,
-                        vertex_slab: vertex_slab.unwrap_or_default(),
-                        index_slab,
+                        slabs: MeshSlabs {
+                            vertex_slab_id,
+                            index_slab_id,
+                            ..Default::default()
+                        },
                     },
                     OpaqueNoLightmap3dBinKey {
-                        asset_id: mesh_instance.mesh_asset_id.into(),
+                        asset_id: mesh_instance.mesh_asset_id().into(),
                     },
                     (*entity, *main_entity),
                     InputUniformIndex(0),
                     BinnedRenderPhaseType::UnbatchableMesh,
-                    ticks.this_run(),
                 );
             }
         }

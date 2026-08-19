@@ -1,4 +1,4 @@
-# 👾 bevy_eidolon 
+# 👾 bevy_eidolon
 [![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/NicoZweifel/bevy_eidolon?tab=readme-ov-file#license)
 [![Crates.io](https://img.shields.io/crates/v/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
 [![Downloads](https://img.shields.io/crates/d/bevy_eidolon.svg)](https://crates.io/crates/bevy_eidolon)
@@ -15,10 +15,10 @@ I am planning to use this as a base for other instanced materials, similar to th
 > [!CAUTION]
 > This package is in early development.
 
-## What is this for? 
+## What is this for?
 
 Drawing a lot of instances (millions) that require GPU-driven rendering with no transparency/alpha masking and that need some variation in scale, color, etc.,
-but can't be reasonably done with the default material pipeline. 
+but can't be reasonably done with the default material pipeline.
 
 Examples include grass, assemblies for foliage/trees and tools to debug them, as well as related systems (scattering, height mapping, obstacles).
 
@@ -27,7 +27,7 @@ Examples include grass, assemblies for foliage/trees and tools to debug them, as
 The standard implementation only supports simple colors and basic features.
 
 > [!IMPORTANT]
-> **I don't want this to become a monster material that supports everything.** 
+> **I don't want this to become a monster material that supports everything.**
 
 However, there is an example on how to use the standard PBR lighting, and I don't mind adding specific examples if the API is a bit more mature.
 
@@ -43,6 +43,7 @@ Dual-licensed:
 ## Compatibility
 | bevy        | bevy_eidolon |
 |-------------|--------------|
+| 0.19        | 0.5+         |
 | 0.18        | 0.3+         |
 | 0.17        | 0.1          |
 

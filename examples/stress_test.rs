@@ -188,11 +188,12 @@ fn spawn_chunk(
         chunk.y as f32 * cfg.spacing * cfg.instances_dim as f32,
     );
 
-    let all_meshes = vec![
+    let all_meshes = [
         meshes.line.clone(),
         meshes.cube.clone(),
         meshes.sphere.clone(),
     ];
+
     let mesh = match cfg.mesh_mode {
         MeshMode::Mixed => all_meshes[rng.random_range(0..all_meshes.len())].clone(),
         MeshMode::Line => meshes.line.clone(),

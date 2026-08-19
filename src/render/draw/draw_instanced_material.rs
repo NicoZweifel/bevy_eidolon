@@ -30,13 +30,7 @@ impl<P: PhaseItem, M: InstancedMaterial, const I: usize> RenderCommand<P>
         let allocator = allocator.into_inner();
         let batch_ranges = batch_ranges.into_inner();
         let entity = item.entity();
-
         let Some(&batch_index) = batch_ranges.batch_lookup.get(&entity) else {
-            #[cfg(feature = "trace")]
-            error!(
-                "SetInstanceBindGroup: No batch index found for entity {:?}!",
-                entity
-            );
             return RenderCommandResult::Skip;
         };
 

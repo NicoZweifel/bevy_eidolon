@@ -4,9 +4,10 @@ use bevy_camera::prelude::ViewVisibility;
 use bevy_core_pipeline::core_3d::Opaque3d;
 use bevy_ecs::{change_detection::Tick, prelude::*};
 use bevy_mesh::Mesh3d;
+use bevy_pbr::MeshPipelineSystems;
 use bevy_platform::collections::hash_map::Entry;
 use bevy_render::{
-    Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
+    Extract, ExtractSchedule, Render, RenderApp, RenderStartup, RenderSystems,
     extract_component::ExtractComponentPlugin,
     render_asset::RenderAssetPlugin,
     render_phase::AddRenderCommand,
@@ -16,13 +17,15 @@ use bevy_render::{
 use bevy_shader::load_shader_library;
 use bevy_transform::prelude::GlobalTransform;
 
-use crate::allocator::prelude::AllocatorPlugin;
 use crate::cull::prepare::prepare_global_cull_buffer;
 use crate::prelude::*;
 use crate::prepass::prelude::InstancedPrepassPlugin;
 use crate::render::{
     draw::DrawInstancedMaterial, pipeline::InstancedMaterialPipeline, prepare::*,
     prepared_material::PreparedInstancedMaterial, queue::*,
+};
+use crate::{
+    allocator::prelude::AllocatorPlugin, render::pipeline::init_instanced_material_pipeline,
 };
 
 use crate::prepass::CullComputeCamera;
@@ -56,12 +59,24 @@ impl Plugin for InstancedMaterialCorePlugin {
 
         render_app
             .init_resource::<RenderInstancedMaterialInstances>()
+            .init_resource::<RemovedRenderInstancedMaterialEntities>()
             .configure_sets(ExtractSchedule, InstancedMaterialExtractionSystems)
             .add_systems(
                 ExtractSchedule,
-                late_sweep_instanced_material_instances.after(InstancedMaterialExtractionSystems),
+                (
+                    clear_removed_instanced_material_entities
+                        .in_set(InstancedMaterialExtractionSystems),
+                    late_sweep_instanced_material_instances
+                        .after(InstancedMaterialExtractionSystems),
+                ),
             );
     }
+}
+
+fn clear_removed_instanced_material_entities(
+    mut removed: ResMut<RemovedRenderInstancedMaterialEntities>,
+) {
+    removed.0.clear();
 }
 
 fn update_instance_history(
@@ -114,6 +129,10 @@ where
             .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
             .init_resource::<SpecializedMeshPipelines<InstancedMaterialPipeline<M>>>()
             .add_systems(
+                RenderStartup,
+                init_instanced_material_pipeline::<M>.after(MeshPipelineSystems),
+            )
+            .add_systems(
                 ExtractSchedule,
                 (
                     extract_instanced_mesh_materials::<M>
@@ -133,15 +152,11 @@ where
                 ),
             );
     }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedMaterialPipeline<M>>();
-    }
 }
 
 fn extract_instanced_mesh_materials<M: InstancedMaterial>(
     mut material_instances: ResMut<RenderInstancedMaterialInstances>,
+    mut removed_entities: ResMut<RemovedRenderInstancedMaterialEntities>,
     changed_meshes_query: Extract<
         Query<
             (Entity, &ViewVisibility, &InstancedMeshMaterial<M>),
@@ -164,43 +179,50 @@ fn extract_instanced_mesh_materials<M: InstancedMaterial>(
                 },
             );
         } else {
-            material_instances
-                .instances
-                .remove(&MainEntity::from(entity));
+            let main_entity = MainEntity::from(entity);
+            if material_instances.instances.remove(&main_entity).is_some() {
+                removed_entities.0.push(main_entity);
+            }
         }
     }
 }
 
 fn early_sweep_instanced_material_instances<M: InstancedMaterial>(
     mut material_instances: ResMut<RenderInstancedMaterialInstances>,
+    mut removed_entities: ResMut<RemovedRenderInstancedMaterialEntities>,
     mut removed_materials_query: Extract<RemovedComponents<InstancedMeshMaterial<M>>>,
 ) {
     let last_change_tick = material_instances.current_change_tick;
 
     for entity in removed_materials_query.read() {
-        let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into())
+        let main_entity = MainEntity::from(entity);
+        let Entry::Occupied(occupied_entry) = material_instances.instances.entry(main_entity)
         else {
             continue;
         };
 
         if occupied_entry.get().last_change_tick != last_change_tick {
             occupied_entry.remove();
+            removed_entities.0.push(main_entity);
         }
     }
 }
 
 fn late_sweep_instanced_material_instances(
     mut material_instances: ResMut<RenderInstancedMaterialInstances>,
+    mut removed_entities: ResMut<RemovedRenderInstancedMaterialEntities>,
     mut removed_visibility_query: Extract<RemovedComponents<ViewVisibility>>,
     mut removed_mesh_query: Extract<RemovedComponents<Mesh3d>>,
 ) {
     let last_change_tick = material_instances.current_change_tick;
 
     let mut remove = |entity: Entity| {
-        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(entity.into())
+        let main_entity = MainEntity::from(entity);
+        if let Entry::Occupied(occupied_entry) = material_instances.instances.entry(main_entity)
             && occupied_entry.get().last_change_tick != last_change_tick
         {
             occupied_entry.remove();
+            removed_entities.0.push(main_entity);
         }
     };
 
@@ -216,6 +238,9 @@ fn late_sweep_instanced_material_instances(
         .current_change_tick
         .set(last_change_tick.get() + 1);
 }
+
+#[derive(Resource, Default)]
+pub struct RemovedRenderInstancedMaterialEntities(pub Vec<MainEntity>);
 
 #[derive(Resource, Default)]
 pub struct RenderInstancedMaterialInstances {

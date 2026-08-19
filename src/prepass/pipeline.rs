@@ -8,9 +8,10 @@ use bevy_ecs::prelude::*;
 use bevy_mesh::{MeshVertexBufferLayoutRef, VertexBufferLayout, VertexFormat};
 use bevy_pbr::{MeshLayouts, MeshPipeline, MeshPipelineKey, PrepassPipeline};
 use bevy_render::render_resource::{
-    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, FragmentState,
-    MultisampleState, PrimitiveState, RenderPipelineDescriptor, SpecializedMeshPipeline,
-    SpecializedMeshPipelineError, StencilState, VertexAttribute, VertexState, VertexStepMode,
+    BindGroupLayoutDescriptor, CompareFunction, DepthBiasState, DepthStencilState, Face,
+    FragmentState, MultisampleState, PrimitiveState, RenderPipelineDescriptor,
+    SpecializedMeshPipeline, SpecializedMeshPipelineError, StencilState, VertexAttribute,
+    VertexState, VertexStepMode,
 };
 use bevy_shader::Shader;
 use bevy_utils::default;
@@ -112,10 +113,27 @@ where
                 shader_defs.push("VERTEX_NORMALS".into());
                 vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_NORMAL.at_shader_location(1));
             }
-            if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_TANGENT) {
-                shader_defs.push("VERTEX_TANGENTS".into());
-                vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_TANGENT.at_shader_location(2));
-            }
+        }
+
+        if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_UV_0) {
+            shader_defs.push("VERTEX_UVS".into());
+            shader_defs.push("VERTEX_UVS_A".into());
+            vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_UV_0.at_shader_location(2));
+        }
+
+        if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_UV_1) {
+            shader_defs.push("VERTEX_UVS_B".into());
+            vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_UV_1.at_shader_location(3));
+        }
+
+        if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_TANGENT) {
+            shader_defs.push("VERTEX_TANGENTS".into());
+            vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_TANGENT.at_shader_location(4));
+        }
+
+        if layout.0.contains(bevy_mesh::Mesh::ATTRIBUTE_COLOR) {
+            shader_defs.push("VERTEX_COLORS".into());
+            vertex_attributes.push(bevy_mesh::Mesh::ATTRIBUTE_COLOR.at_shader_location(5));
         }
 
         if key
@@ -198,12 +216,14 @@ where
             },
             primitive: PrimitiveState {
                 topology: key.mesh_key.primitive_topology(),
+                strip_index_format: key.mesh_key.strip_index_format(),
+                cull_mode: Some(Face::Back),
                 ..Default::default()
             },
             depth_stencil: Some(DepthStencilState {
                 format: CORE_3D_DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: CompareFunction::GreaterEqual,
+                depth_write_enabled: Some(true),
+                depth_compare: Some(CompareFunction::GreaterEqual),
                 stencil: StencilState::default(),
                 bias: DepthBiasState::default(),
             }),

@@ -3,9 +3,11 @@ use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, query::QueryItem};
 use bevy_math::{Mat4, Vec3, Vec4};
 use bevy_reflect::Reflect;
+use bevy_reflect::std_traits::ReflectDefault;
 use bevy_render::{
     extract_component::ExtractComponent,
     render_resource::{BindGroup, Buffer},
+    sync_component::SyncComponent,
 };
 use bevy_utils::default;
 
@@ -23,14 +25,14 @@ use std::sync::Arc;
 
 /// Marker component to opt in to GPU-driven culling/preparation.
 #[derive(Component, Clone, Copy, Debug, Default, ExtractComponent, Reflect)]
-#[reflect(Component, Clone, Debug)]
+#[reflect(Component, Clone, Debug, Default)]
 pub struct GpuCullCompute;
 
 /// Sets the material color.
 ///
 /// Corresponds to `instance_uniforms.color` in shaders.
 #[derive(Component, Clone, Copy, Debug, Reflect, Default, From, Into, Deref, DerefMut)]
-#[reflect(Component, Clone, Debug)]
+#[reflect(Component, Clone, Debug, Default)]
 pub struct InstanceColor(pub Color);
 
 impl InstanceColor {
@@ -81,6 +83,10 @@ impl fmt::Debug for InstanceMaterialData {
             .field("visibility_range", &self.visibility_range)
             .finish()
     }
+}
+
+impl SyncComponent for InstanceMaterialData {
+    type Target = (Self, GlobalTransform, Aabb);
 }
 
 impl ExtractComponent for InstanceMaterialData {
@@ -161,6 +167,10 @@ pub struct InstancedComputeBindGroup(pub BindGroup);
 
 #[derive(Component, Clone, Deref, DerefMut)]
 pub struct MaterialBindGroupData<M: InstancedMaterial>(pub M::Data);
+
+impl<M: InstancedMaterial> SyncComponent for MaterialBindGroupData<M> {
+    type Target = Self;
+}
 
 impl<M> ExtractComponent for MaterialBindGroupData<M>
 where

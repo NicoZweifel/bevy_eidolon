@@ -55,20 +55,20 @@ where
             return RenderCommandResult::Skip;
         };
 
-        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
+        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id()) else {
             #[cfg(feature = "trace")]
-            error!("No gpu_mesh for asset {:?}", mesh_instance.mesh_asset_id);
+            error!("No gpu_mesh for asset {:?}", mesh_instance.mesh_asset_id());
             return RenderCommandResult::Skip;
         };
 
         let mesh_allocator = mesh_allocator.into_inner();
         let Some(vertex_buffer_slice) =
-            mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id)
+            mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id())
         else {
             #[cfg(feature = "trace")]
             error!(
                 "No vertex_buffer_slice for asset {:?}",
-                mesh_instance.mesh_asset_id
+                mesh_instance.mesh_asset_id()
             );
             return RenderCommandResult::Skip;
         };
@@ -111,12 +111,12 @@ where
         match &gpu_mesh.buffer_info {
             RenderMeshBufferInfo::Indexed { index_format, .. } => {
                 let Some(index_buffer_slice) =
-                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)
+                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id())
                 else {
                     #[cfg(feature = "trace")]
                     error!(
                         "No index_buffer_slice for asset {:?}",
-                        mesh_instance.mesh_asset_id
+                        mesh_instance.mesh_asset_id()
                     );
                     return RenderCommandResult::Skip;
                 };

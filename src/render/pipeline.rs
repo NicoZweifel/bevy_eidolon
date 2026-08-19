@@ -82,36 +82,35 @@ pub struct InstancedMaterialPipeline<M: InstancedMaterial> {
     pub _phantom: PhantomData<M>,
 }
 
-impl<M: InstancedMaterial> FromWorld for InstancedMaterialPipeline<M> {
-    fn from_world(world: &mut World) -> Self {
-        let mesh_pipeline = world.resource::<MeshPipeline>().clone();
-        let render_device = world.resource::<RenderDevice>();
-        let asset_server = world.resource::<AssetServer>();
+pub fn init_instanced_material_pipeline<M: InstancedMaterial>(
+    mut commands: Commands,
+    mesh_pipeline: Res<MeshPipeline>,
+    render_device: Res<RenderDevice>,
+    asset_server: Res<AssetServer>,
+) {
+    let material_entries = M::bind_group_layout_entries(&render_device, false);
+    let material_label = format!("instanced_material_layout_{}", std::any::type_name::<M>());
+    let material_layout = BindGroupLayoutDescriptor::new(material_label, &material_entries);
 
-        let material_entries = M::bind_group_layout_entries(render_device, false);
-        let material_label = format!("instanced_material_layout_{}", std::any::type_name::<M>());
-        let material_layout = BindGroupLayoutDescriptor::new(material_label, &material_entries);
+    let common_layout = BindGroupLayoutDescriptor::new(
+        "instanced_material_common_layout",
+        &BindGroupLayoutEntries::single(
+            ShaderStages::VERTEX_FRAGMENT | ShaderStages::COMPUTE,
+            storage_buffer_read_only::<InstanceUniforms>(false),
+        ),
+    );
 
-        let common_layout = BindGroupLayoutDescriptor::new(
-            "instanced_material_common_layout",
-            &BindGroupLayoutEntries::single(
-                ShaderStages::VERTEX_FRAGMENT | ShaderStages::COMPUTE,
-                storage_buffer_read_only::<InstanceUniforms>(false),
-            ),
-        );
+    let vertex_shader = M::vertex_shader().resolve(&asset_server, "render/mesh.wgsl");
+    let fragment_shader = M::fragment_shader().resolve(&asset_server, "render/shading.wgsl");
 
-        let vertex_shader = M::vertex_shader().resolve(asset_server, "render/mesh.wgsl");
-        let fragment_shader = M::fragment_shader().resolve(asset_server, "render/shading.wgsl");
-
-        InstancedMaterialPipeline {
-            vertex_shader,
-            fragment_shader,
-            mesh_pipeline,
-            common_layout,
-            material_layout,
-            _phantom: PhantomData,
-        }
-    }
+    commands.insert_resource(InstancedMaterialPipeline::<M> {
+        vertex_shader,
+        fragment_shader,
+        mesh_pipeline: mesh_pipeline.clone(),
+        common_layout,
+        material_layout,
+        _phantom: PhantomData,
+    });
 }
 
 impl<M> SpecializedMeshPipeline for InstancedMaterialPipeline<M>
@@ -163,8 +162,8 @@ where
         }
 
         if let Some(ds) = descriptor.depth_stencil.as_mut() {
-            ds.depth_write_enabled = true;
-            ds.depth_compare = CompareFunction::GreaterEqual;
+            ds.depth_write_enabled = Some(true);
+            ds.depth_compare = Some(CompareFunction::GreaterEqual);
         }
 
         let shader_defs = &mut descriptor.vertex.shader_defs;

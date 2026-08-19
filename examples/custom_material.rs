@@ -153,9 +153,9 @@ fn setup(
         (Vec::new(), Vec::new()),
         |(mut data, mut red_data), instance| {
             if instance.index % 2 == 0 {
-                data.push(instance.clone());
+                data.push(*instance);
             } else {
-                red_data.push(instance.clone());
+                red_data.push(*instance);
             }
             (data, red_data)
         },

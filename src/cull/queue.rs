@@ -19,9 +19,7 @@ pub fn queue_instanced_material_compute_pipeline<M: InstancedMaterial>(
             compute_pipeline.common_layout.clone(),
             compute_pipeline.global_layout.clone(),
         ],
-        push_constant_ranges: vec![],
         shader: compute_pipeline.shader.clone(),
-        shader_defs: vec![],
         entry_point: Some("main".into()),
         ..default()
     });
