@@ -1,3 +1,4 @@
+use crate::allocator::id_allocator::IdAllocator;
 use crate::allocator::utils::ensure_buffer_capacity;
 use crate::render::prepare::{core::Clear, utils::data_offset, *};
 
@@ -39,7 +40,11 @@ impl<'a> InstanceBufferUpdater<'a> {
             source_buffer,
             inputs,
         });
-        self.collect_output_writes(CollectOutputContext { entities, inputs })
+        self.collect_output_writes(CollectOutputContext {
+            entities,
+            inputs,
+            source_id_allocator: &page.id_allocator,
+        })
     }
 
     fn ensure_capacity(&self, page: &mut InstancePage, capacity: u64) {
@@ -126,14 +131,18 @@ impl<'a> InstanceBufferUpdater<'a> {
             .filter_map(|e| ctx.inputs.get(e))
             .filter(|i| !i.gpu_cull)
             .filter_map(|input| {
-                self.source_allocator
-                    .get(input.entity)
-                    .map(|alloc| (input, alloc))
+                let alloc = self.source_allocator.get(input.entity)?;
+                let batch_id = *ctx.source_id_allocator.allocations.get(&input.entity)?;
+                Some((input, alloc, batch_id))
             })
-            .map(|(input, alloc)| {
+            .map(|(input, alloc, batch_id)| {
                 (
                     alloc.offset as u64 * size_of::<InstanceData>() as u64,
-                    input.instances.to_vec(),
+                    input
+                        .instances
+                        .iter()
+                        .map(|d| d.with_batch_id(batch_id))
+                        .collect::<Vec<_>>(),
                 )
             })
             .collect()
@@ -149,4 +158,5 @@ struct ProcessWriteContext<'a> {
 struct CollectOutputContext<'a> {
     entities: &'a Vec<Entity>,
     inputs: &'a EntityHashMap<BatchInput>,
+    source_id_allocator: &'a IdAllocator,
 }
