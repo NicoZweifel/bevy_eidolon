@@ -117,9 +117,12 @@ where
         app.add_plugins((
             AllocatorPlugin::<M>::default(),
             ExtractComponentPlugin::<InstancedMeshMaterial<M>>::default(),
-            ExtractComponentPlugin::<CullComputeCamera>::default(),
             RenderAssetPlugin::<PreparedInstancedMaterial<M>>::default(),
         ));
+
+        if !app.is_plugin_added::<ExtractComponentPlugin<CullComputeCamera>>() {
+            app.add_plugins(ExtractComponentPlugin::<CullComputeCamera>::default());
+        }
 
         app.add_plugins(InstancedPrepassPlugin::<M>::default());
 
