@@ -96,6 +96,10 @@ pub(crate) fn queue_instanced_material<M>(
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
 
+            if pipeline_cache.get_render_pipeline(pipeline).is_none() {
+                continue;
+            }
+
             let Some(MeshSlabs {
                 vertex_slab_id,
                 index_slab_id,
