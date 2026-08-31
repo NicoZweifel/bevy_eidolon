@@ -126,6 +126,16 @@ where
                 let count = range.end - range.start;
                 let offset = (range.start as u64) * size_of::<DrawIndexedIndirectArgs>() as u64;
 
+                // WebGPU has no multi-draw-indirect.
+                // For now, every bevy_eidolon batch is exactly one sub-draw, so a
+                // single `draw_indexed_indirect` is equivalent.
+                #[cfg(target_family = "wasm")]
+                {
+                    debug_assert_eq!(count, 1, "webgpu draw path assumes one sub-draw per batch");
+                    let _ = count;
+                    pass.draw_indexed_indirect(indirect_buffer, offset);
+                }
+                #[cfg(not(target_family = "wasm"))]
                 pass.multi_draw_indexed_indirect(indirect_buffer, offset, count);
             }
             RenderMeshBufferInfo::NonIndexed => {

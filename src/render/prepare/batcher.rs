@@ -62,7 +62,7 @@ impl Batcher<'_> {
                 .map(|s| s.range.start)
                 .unwrap_or(0) as i32;
 
-            self.register(input, index);
+            self.register(input, index, offset);
 
             let instance_count = if input.gpu_cull {
                 0
@@ -70,13 +70,22 @@ impl Batcher<'_> {
                 input.instances.len() as u32
             };
 
+            // WebGPU forbids a non-zero `first_instance` in indirect draws (the
+            // `INDIRECT_FIRST_INSTANCE` wgpu feature is native-only). WASM draw
+            // path applies `offset` via a slot-1 vertex-buffer offset in
+            // `SetInstanceBindGroup` instead, so bake 0 here on wasm.
+            #[cfg(target_family = "wasm")]
+            let first_instance = 0;
+            #[cfg(not(target_family = "wasm"))]
+            let first_instance = offset;
+
             let data = BatchData {
                 indirect: DrawIndexedIndirectArgs {
                     index_count,
                     instance_count,
                     first_index,
                     base_vertex,
-                    first_instance: offset,
+                    first_instance,
                 },
                 uniform: input.batch,
                 metadata: BatchMetadata {
@@ -90,11 +99,14 @@ impl Batcher<'_> {
         }
     }
 
-    fn register(&mut self, input: &BatchInput, batch: u32) {
+    #[allow(unused_variables)]
+    fn register(&mut self, input: &BatchInput, batch: u32, instance_offset: u32) {
         let range = batch..(batch + 1);
         self.batch_ranges.batches.push(BatchInfo {
             page: self.page_id,
             range,
+            #[cfg(target_family = "wasm")]
+            instance_offset,
         });
 
         let index = (self.batch_ranges.batches.len() - 1) as u32;
