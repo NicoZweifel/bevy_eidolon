@@ -69,6 +69,16 @@ impl<P: PhaseItem, M: InstancedMaterial, const I: usize> RenderCommand<P>
         }
 
         if let Some(output_buffer) = &page.output_buffer {
+            // Native binds the whole buffer and lets `first_instance` select the
+            // batch's slice. WebGPU can't use a non-zero `first_instance`, so bind
+            // the buffer starting at this batch's instance base instead.
+            #[cfg(target_family = "wasm")]
+            {
+                let byte_offset = batch_ranges.batches[batch_index as usize].instance_offset as u64
+                    * size_of::<crate::components::InstanceData>() as u64;
+                pass.set_vertex_buffer(1, output_buffer.slice(byte_offset..));
+            }
+            #[cfg(not(target_family = "wasm"))]
             pass.set_vertex_buffer(1, output_buffer.slice(..));
         } else {
             #[cfg(feature = "trace")]

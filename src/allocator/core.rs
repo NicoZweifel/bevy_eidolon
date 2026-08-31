@@ -84,6 +84,8 @@ impl<M: InstancedMaterial> Eq for BatchKey<M> {}
 pub struct BatchInfo {
     pub page: usize,
     pub range: Range<u32>,
+    #[cfg(target_family = "wasm")]
+    pub instance_offset: u32,
 }
 
 #[derive(Default)]
